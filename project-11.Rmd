@@ -1,0 +1,14 @@
+---
+title: "Predicting AirBnB Rental Rates"
+author: "Trevor Isaacson, Jonathan Olavarria, Jasmine DeMeyer"
+date: "11/17/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+
+
+```
+
+
