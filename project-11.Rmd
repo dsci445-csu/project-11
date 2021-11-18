@@ -53,12 +53,17 @@ training_df %>%
   group_by(property_type) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total))
-```
 
-## Room Type
-```{r}
 training_df %>%
   group_by(room_type) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+```
+
+## City
+```{r}
+training_df %>%
+  group_by(city) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total))
 ```
