@@ -7,6 +7,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.width=5, fig.height=3) 
 #knitr::opts_chunk$set(warning = FALSE)
 library(ggplot2)
 library(tidyverse)
@@ -28,26 +29,90 @@ training_df = training_df %>%
 
 head(training_df)
 ```
-**Variable Descriptions:**
+# Variable Descriptions:
+## Log Price
+```{r}
+ggplot(data = training_df) +
+  geom_histogram(aes(log_price), bins = 50) +
+  ggtitle("Log Price")
+
+```
+
+## Price
+```{r}
+ggplot(data = training_df) +
+  geom_histogram(aes(price), bins = 100) +
+  ggtitle("Listing Price ($)") + 
+  geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2)
+
+```
+
+## Property Type
 ```{r}
 training_df %>%
   group_by(property_type) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total))
+```
 
-ggplot(data = training_df) +
-  geom_histogram(aes(log_price), bins = 50) +
-  ggtitle("Log Price")
+## Room Type
+```{r}
+training_df %>%
+  group_by(room_type) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+```
 
-ggplot(data = training_df) +
-  geom_histogram(aes(price), bins = 100) +
-  ggtitle("Listing Price ($)")
+## Property Details
+```{r}
+accommodates = training_df %>%
+  group_by(accommodates) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+accommodates
+
+bedrooms = training_df %>%
+  group_by(bedrooms) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+bedrooms
+
+bathrooms = training_df %>%
+  group_by(bathrooms) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+bathrooms
+
+bedType = training_df %>%
+  group_by(bed_type) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+bedType
 
 
 
 ```
 
+## Host details
+```{r}
+training_df %>%
+  group_by(host_has_profile_pic) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
 
+training_df %>%
+  group_by(host_identity_verified) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+
+training_df %>%
+  group_by(instant_bookable) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total))
+
+
+
+```
 
 
 
