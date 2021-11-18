@@ -6,6 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
 library(ggplot2)
 library(tidyverse)
 library(tidyr)
@@ -15,11 +16,11 @@ library(glmnet)
 
 ```
 
-
-
 ```{r}
 training_df = read.csv("train.csv")
+```
 
+```{r}
 training_df = training_df %>% 
   select(-c(thumbnail_url, name, X))
 
