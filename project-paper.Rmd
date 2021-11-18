@@ -22,7 +22,7 @@ library(tinytex)
 
 
 **The Data:**
-As a company, AirBnB is very open and transparent with the data they collect about their rental properties.  They provide data about rental spaces in their system for cities and countries all over the world.  Because of this, we were able to find a large dataset on Kaggle with AirBnB listings in major US cities including New York City, Los Angeles, San Francisco and others.  The dataset available on Kaggle has over 78,000 entries and used as a competition a few years ago.  Because we aren't able to submit our results, we trimmed our training data to about 18,000 entries and our test data to about 3,000 entries.  This allowed for easier access and faster processing while maintaining a large dataset.  
+As a company, AirBnB is very open and transparent with the data they collect about their rental properties.  They provide data about rental spaces in their system for cities and countries all over the world.  Because of this, we were able to find a large dataset on Kaggle with AirBnB listings in major US cities including New York City, Los Angeles, San Francisco and others.  The dataset available on Kaggle has over 78,000 entries and used as a competition a few years ago.  Because we aren't able to submit our results, we trimmed our training data to about 18,000 entries and our test data to about 3,000 entries.  This allowed for easier access and faster processing while maintaining a large dataset.  The data includes 29 variables including nightly rental price, property details, location, host details and more.    
 
 
 
