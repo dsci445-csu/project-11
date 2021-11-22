@@ -2,20 +2,23 @@
 title: "Predicting AirBnB Rental Rates"
 author: "Trevor Isaacson, Jonathan Olavarria, Jasmine DeMeyer"
 date: "12/10/2021"
-output: pdf_document
+output:
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(fig.width=5, fig.height=3) 
-#knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 library(ggplot2)
 library(tidyverse)
 library(tidyr)
 library(e1071)
 library(rmarkdown)
 library(glmnet)
-
+library(knitr)
+library(leaps)
 ```
 
 ```{r}
@@ -24,20 +27,12 @@ training_df = read.csv("train.csv")
 
 ```{r}
 training_df = training_df %>% 
-  select(-c(thumbnail_url, name, X)) %>%
-  mutate(price = exp(log_price))
+  mutate(price = exp(log_price))  %>%
+  select(-c(thumbnail_url, name, X, log_price))
 
 head(training_df)
 ```
 # Variable Descriptions:
-## Log Price
-```{r}
-ggplot(data = training_df) +
-  geom_histogram(aes(log_price), bins = 50) +
-  ggtitle("Log Price")
-
-```
-
 ## Price
 ```{r}
 ggplot(data = training_df) +
@@ -46,52 +41,62 @@ ggplot(data = training_df) +
   geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2)
 
 ```
+```
 
 ## Property Type
 ```{r}
 training_df %>%
   group_by(property_type) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 
 training_df %>%
   group_by(room_type) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
-```
+  arrange(desc(Total)) %>%
+  kable()
+
 
 ## City
 ```{r}
 training_df %>%
   group_by(city) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 ```
+
+
 
 ## Property Details
 ```{r}
 accommodates = training_df %>%
   group_by(accommodates) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 accommodates
 
 bedrooms = training_df %>%
   group_by(bedrooms) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 bedrooms
 
 bathrooms = training_df %>%
   group_by(bathrooms) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 bathrooms
 
 bedType = training_df %>%
   group_by(bed_type) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 bedType
 
 
@@ -103,21 +108,78 @@ bedType
 training_df %>%
   group_by(host_has_profile_pic) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 
 training_df %>%
   group_by(host_identity_verified) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
 
 training_df %>%
   group_by(instant_bookable) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total))
+  arrange(desc(Total)) %>%
+  kable()
+
+training_df %>%
+  group_by(cancellation_policy) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  kable()
+
+```
+
+
+
+
+## Variable Selection?
+Use best subsets to find which variables are best suited for generating our models? (HW4)
+```{r}
+subset_forward = regsubsets(price ~ ., data = training_df, nvmax = 10, method = "forward")
+summary(subset_forward)
+
 
 
 
 ```
+
+
+
+
+
+
+
+## Models
+
+
+
+
+
+
+
+
+
+## Final Model
+
+
+
+
+
+
+
+## Results
+
+
+
+
+
+
+
+
+
+
 
 
 
