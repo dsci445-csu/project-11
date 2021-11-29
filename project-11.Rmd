@@ -19,19 +19,51 @@ library(rmarkdown)
 library(glmnet)
 library(knitr)
 library(leaps)
+library(lubridate)
 ```
 
 ```{r}
-training_df = read.csv("train.csv")
+original_df = read.csv("train.csv")
+head(original_df)
 ```
 
 ```{r}
-training_df = training_df %>% 
+training_df = original_df %>% 
   mutate(price = exp(log_price))  %>%
-  select(-c(thumbnail_url, name, X, log_price))
+  select(-c(id, thumbnail_url, name, X, log_price)) %>%
+  mutate(first_review = as.Date(training_df$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(training_df$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(training_df$host_since, format = "%Y-%m-%d"))
+```
 
+```{r}
 head(training_df)
 ```
+
+```{r}
+training_df = training_df %>%
+  mutate(first_review = cut(training_df$first_review, "week")) %>%
+  mutate(host_since = cut(training_df$host_since, "week")) %>%
+  mutate(last_review = cut(training_df$last_review, "week")) %>%
+  mutate(first_review_month = cut(training_df$first_review, "month")) %>%
+  mutate(last_review_month = cut(training_df$last_review, "month")) %>%
+  mutate(host_since_month = cut(training_df$host_since, "month"))
+
+```
+
+```{r}
+head(training_df)
+```
+
+```{r}
+training_df %>%
+  group_by(first_review_month) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(first_review_month)) %>%
+  kable()
+
+```
+
 # Variable Descriptions:
 ## Price
 ```{r}
@@ -56,15 +88,14 @@ training_df %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) %>%
   kable()
-
+```
 
 ## City
 ```{r}
 training_df %>%
   group_by(city) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total)) %>%
-  kable()
+  arrange(desc(Total))
 ```
 
 
@@ -126,9 +157,7 @@ training_df %>%
 training_df %>%
   group_by(cancellation_policy) %>%
   summarise(Total = n()) %>%
-  arrange(desc(Total)) %>%
-  kable()
-
+  arrange(desc(Total)) 
 ```
 
 
@@ -137,11 +166,33 @@ training_df %>%
 ## Variable Selection?
 Use best subsets to find which variables are best suited for generating our models? (HW4)
 ```{r}
-subset_forward = regsubsets(price ~ ., data = training_df, nvmax = 10, method = "forward")
-summary(subset_forward)
+head(training_df)
 
+```
 
-
+```{r}
+# subset_forward = regsubsets(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + host_response_rate + host_since + instant_bookable + latitude + longitude + number_of_reviews + bedrooms + beds, data = training_df, nvmax = 10, method = "backward")
+# summary(subset_forward)
+# 
+# x1 = seq(1, 20, length.out = 10)
+# ggplot() + 
+#     geom_point(aes(x = x1, y = subset_forward$cp)) + 
+#     ggtitle("Forward Stepwise according to C_p") +
+#     geom_line(aes(x = x1, y = subset_forward$cp)) + 
+#     xlab("Number of Variables") + ylab("C_p")+ 
+#     scale_x_continuous(breaks = 1:10)
+# ggplot() + 
+#     geom_point(aes(x = x1, y = subset_forward$bic)) + 
+#     ggtitle("Forward Stepwise according to BIC") +
+#     geom_line(aes(x = x1, y = subset_forward$bic)) + 
+#     xlab("Number of Variables") + ylab("BIC")+ 
+#     scale_x_continuous(breaks = 1:10)
+# ggplot() + 
+#     geom_point(aes(x = x1, y = subset_forward$adjr2)) + 
+#     ggtitle("Forward Stepwise according to Adjusted R^2") +
+#     geom_line(aes(x = x1, y = subset_forward$adjr2)) + 
+#     xlab("Number of Variables") + ylab("Adjusted R^2")+ 
+#     scale_x_continuous(breaks = 1:10)
 
 ```
 
