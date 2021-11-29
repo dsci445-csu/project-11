@@ -23,7 +23,8 @@ library(lubridate)
 ```
 
 ```{r}
-original_df = read.csv("train.csv")
+original_df = read.csv("training_data.csv")
+nrow(original_df)
 head(original_df)
 ```
 
@@ -32,9 +33,9 @@ head(original_df)
 training_df = original_df %>% 
   mutate(price = exp(log_price))  %>%
   select(-c(id, thumbnail_url, name, X, log_price)) %>%
-  mutate(first_review = as.Date(training_df$first_review, format = "%Y-%m-%d")) %>%
-  mutate(last_review = as.Date(training_df$last_review, format = "%Y-%m-%d")) %>%
-  mutate(host_since = as.Date(training_df$host_since, format = "%Y-%m-%d")) 
+  mutate(first_review = as.Date(original_df$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(original_df$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(original_df$host_since, format = "%Y-%m-%d")) 
 ```
 
 ```{r}
@@ -156,9 +157,6 @@ training_df %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) 
 ```
-
-
-
 
 
 ## Variable Selection?
