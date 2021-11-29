@@ -166,30 +166,34 @@ head(training_df)
 ```
 
 ```{r}
-# subset_forward = regsubsets(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + host_response_rate + host_since + instant_bookable + latitude + longitude + number_of_reviews + bedrooms + beds, data = training_df, nvmax = 10, method = "backward")
-# summary(subset_forward)
-# 
-# x1 = seq(1, 20, length.out = 10)
-# ggplot() + 
-#     geom_point(aes(x = x1, y = subset_forward$cp)) + 
-#     ggtitle("Forward Stepwise according to C_p") +
-#     geom_line(aes(x = x1, y = subset_forward$cp)) + 
-#     xlab("Number of Variables") + ylab("C_p")+ 
-#     scale_x_continuous(breaks = 1:10)
-# ggplot() + 
-#     geom_point(aes(x = x1, y = subset_forward$bic)) + 
-#     ggtitle("Forward Stepwise according to BIC") +
-#     geom_line(aes(x = x1, y = subset_forward$bic)) + 
-#     xlab("Number of Variables") + ylab("BIC")+ 
-#     scale_x_continuous(breaks = 1:10)
-# ggplot() + 
-#     geom_point(aes(x = x1, y = subset_forward$adjr2)) + 
-#     ggtitle("Forward Stepwise according to Adjusted R^2") +
-#     geom_line(aes(x = x1, y = subset_forward$adjr2)) + 
-#     xlab("Number of Variables") + ylab("Adjusted R^2")+ 
-#     scale_x_continuous(breaks = 1:10)
+subset_forward = regsubsets(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + host_since_month + first_review_month + last_review_month + instant_bookable + latitude + longitude + number_of_reviews + bedrooms + beds, data = training_df, nvmax = 27, method = "forward")
+forward_summary = summary(subset_forward)
 
 ```
+
+```{r}
+x1 = seq(1, 28, length.out = 28)
+ggplot() +
+    geom_point(aes(x = x1, y = forward_summary$cp)) +
+    ggtitle("Forward Stepwise according to C_p") +
+    geom_line(aes(x = x1, y = forward_summary$cp)) +
+    xlab("Number of Variables") + ylab("C_p")+
+    scale_x_continuous(breaks = 1:28)
+ggplot() +
+    geom_point(aes(x = x1, y = forward_summary$bic)) +
+    ggtitle("Forward Stepwise according to BIC") +
+    geom_line(aes(x = x1, y = forward_summary$bic)) +
+    xlab("Number of Variables") + ylab("BIC")+
+    scale_x_continuous(breaks = 1:28)
+ggplot() +
+    geom_point(aes(x = x1, y = forward_summary$adjr2)) +
+    ggtitle("Forward Stepwise according to Adjusted R^2") +
+    geom_line(aes(x = x1, y = forward_summary$adjr2)) +
+    xlab("Number of Variables") + ylab("Adjusted R^2")+
+    scale_x_continuous(breaks = 1:28)
+
+```
+
 
 
 
