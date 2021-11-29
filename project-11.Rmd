@@ -28,12 +28,13 @@ head(original_df)
 ```
 
 ```{r}
+# probably don't need the individual id of each place, its website url, name and converted log_price to price
 training_df = original_df %>% 
   mutate(price = exp(log_price))  %>%
   select(-c(id, thumbnail_url, name, X, log_price)) %>%
   mutate(first_review = as.Date(training_df$first_review, format = "%Y-%m-%d")) %>%
   mutate(last_review = as.Date(training_df$last_review, format = "%Y-%m-%d")) %>%
-  mutate(host_since = as.Date(training_df$host_since, format = "%Y-%m-%d"))
+  mutate(host_since = as.Date(training_df$host_since, format = "%Y-%m-%d")) 
 ```
 
 ```{r}
@@ -41,6 +42,8 @@ head(training_df)
 ```
 
 ```{r}
+# update 3 date columns to track the start of the week instead of the individual date
+# create 3 new columns to track dates in the form of month instead of individual date
 training_df = training_df %>%
   mutate(first_review = cut(training_df$first_review, "week")) %>%
   mutate(host_since = cut(training_df$host_since, "week")) %>%
@@ -55,15 +58,6 @@ training_df = training_df %>%
 head(training_df)
 ```
 
-```{r}
-training_df %>%
-  group_by(first_review_month) %>%
-  summarise(Total = n()) %>%
-  arrange(desc(first_review_month)) %>%
-  kable()
-
-```
-
 # Variable Descriptions:
 ## Price
 ```{r}
@@ -72,7 +66,6 @@ ggplot(data = training_df) +
   ggtitle("Listing Price ($)") + 
   geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2)
 
-```
 ```
 
 ## Property Type
@@ -96,6 +89,12 @@ training_df %>%
   group_by(city) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total))
+
+# latitude and longitude
+ggplot(data = training_df) +
+  geom_point(aes(x = longitude, y = latitude, color = city)) +
+  ggtitle("Latitude and Longitude")
+
 ```
 
 
@@ -130,8 +129,6 @@ bedType = training_df %>%
   kable()
 bedType
 
-
-
 ```
 
 ## Host details
@@ -163,11 +160,11 @@ training_df %>%
 
 
 
+
 ## Variable Selection?
 Use best subsets to find which variables are best suited for generating our models? (HW4)
 ```{r}
 head(training_df)
-
 ```
 
 ```{r}
