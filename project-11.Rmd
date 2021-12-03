@@ -57,10 +57,9 @@ training_df = training_df %>%
   mutate(first_review_year = cut(training_df$first_review, "year")) %>%
   mutate(last_review_year = cut(training_df$last_review, "year")) %>%
   mutate(host_since_year = cut(training_df$host_since, "year")) %>%
-  mutate(host_response_rate = round(host_response_rate, digits = 1)) %>%  # round to nearest 0.1
+  # mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "NA", 0)) %>%
   mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
   mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))   # eliminate blank values
-  
 
 ```
 
@@ -208,11 +207,12 @@ Jasmine: Regression Splines/Generalized Additive Models
 
 
 Trevor: Regression Trees/Bagging/Random Forests
-```{r}
+```{r} 
 str(training_df)
-initial_tree = tree(price ~ property_type + room_type + accommodates + bathrooms + bedType + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training_df)
+initial_tree = tree(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified  + host_response_rate + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training)
 summary(initial_tree)
-
+plot(initial_tree)
+text(initial_tree, pretty = 0)
 ```
 
 
