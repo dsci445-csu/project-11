@@ -8,6 +8,7 @@ output:
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
+set.seed(445)
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(fig.width=5, fig.height=3) 
 knitr::opts_chunk$set(message = FALSE)
@@ -21,6 +22,7 @@ library(knitr)
 library(leaps)
 library(tree)
 library(dplyr)
+library(caret)
 ```
 
 ```{r}
@@ -208,12 +210,33 @@ Jasmine: Regression Splines/Generalized Additive Models
 
 Trevor: Regression Trees/Bagging/Random Forests
 ```{r} 
-str(training_df)
+# fit regression tree
 initial_tree = tree(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified  + host_response_rate + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training)
 summary(initial_tree)
 plot(initial_tree)
-text(initial_tree, pretty = 0)
+text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
+initial_tree
 ```
+
+
+```{r}
+initial_predict = predict(initial_tree, newdata = testing)
+postResample(initial_predict, testing$price)
+
+# cross validation
+initial_cv = cv.tree(initial_tree)
+ggplot() +
+  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
+
+# pruned by CV
+prune_initial <- prune.tree(initial_tree, best = 8)
+plot(prune_initial)
+text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
+```
+
+
 
 
 
