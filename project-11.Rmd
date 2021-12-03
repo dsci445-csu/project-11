@@ -19,7 +19,7 @@ library(rmarkdown)
 library(glmnet)
 library(knitr)
 library(leaps)
-library(lubridate)
+library(tree)
 ```
 
 ```{r}
@@ -28,14 +28,15 @@ nrow(original_df)
 head(original_df)
 ```
 
+probably don't want the individual id of each place, its website url, description, amenities, name, zipcode (we have lat/long and city) and converted log_price to price
 ```{r}
-# probably don't need the individual id of each place, its website url, name and converted log_price to price
 training_df = original_df %>% 
   mutate(price = exp(log_price))  %>%
-  select(-c(id, thumbnail_url, name, X, log_price)) %>%
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, X, log_price)) %>%
   mutate(first_review = as.Date(original_df$first_review, format = "%Y-%m-%d")) %>%
   mutate(last_review = as.Date(original_df$last_review, format = "%Y-%m-%d")) %>%
-  mutate(host_since = as.Date(original_df$host_since, format = "%Y-%m-%d")) 
+  mutate(host_since = as.Date(original_df$host_since, format = "%Y-%m-%d")) %>%
+  mutate(host_response_rate = as.numeric(sub("%", "", original_df$host_response_rate))/100)
 ```
 
 ```{r}
@@ -51,7 +52,10 @@ training_df = training_df %>%
   mutate(last_review = cut(training_df$last_review, "week")) %>%
   mutate(first_review_month = cut(training_df$first_review, "month")) %>%
   mutate(last_review_month = cut(training_df$last_review, "month")) %>%
-  mutate(host_since_month = cut(training_df$host_since, "month"))
+  mutate(host_since_month = cut(training_df$host_since, "month")) %>%
+  mutate(first_review_year = cut(training_df$first_review, "year")) %>%
+  mutate(last_review_year = cut(training_df$last_review, "year")) %>%
+  mutate(host_since_year = cut(training_df$host_since, "year"))
 
 ```
 
@@ -102,33 +106,29 @@ ggplot(data = training_df) +
 
 ## Property Details
 ```{r}
-accommodates = training_df %>%
+training_df %>%
   group_by(accommodates) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) %>%
   kable()
-accommodates
 
-bedrooms = training_df %>%
+training_df %>%
   group_by(bedrooms) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) %>%
   kable()
-bedrooms
 
-bathrooms = training_df %>%
+training_df %>%
   group_by(bathrooms) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) %>%
   kable()
-bathrooms
 
-bedType = training_df %>%
+training_df %>%
   group_by(bed_type) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) %>%
   kable()
-bedType
 
 ```
 
@@ -160,40 +160,13 @@ training_df %>%
 
 
 ## Variable Selection?
-Use best subsets to find which variables are best suited for generating our models? (HW4)
+Should we first choose we variables should be included in everybody's models or have everybody make their two models and then variable select based on the best model they found? 
+
+Correlation Plot?
 ```{r}
 head(training_df)
-```
-
-```{r}
-subset_forward = regsubsets(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + host_since_month + first_review_month + last_review_month + instant_bookable + latitude + longitude + number_of_reviews + bedrooms + beds, data = training_df, nvmax = 27, method = "forward")
-forward_summary = summary(subset_forward)
 
 ```
-
-```{r}
-x1 = seq(1, 28, length.out = 28)
-ggplot() +
-    geom_point(aes(x = x1, y = forward_summary$cp)) +
-    ggtitle("Forward Stepwise according to C_p") +
-    geom_line(aes(x = x1, y = forward_summary$cp)) +
-    xlab("Number of Variables") + ylab("C_p")+
-    scale_x_continuous(breaks = 1:28)
-ggplot() +
-    geom_point(aes(x = x1, y = forward_summary$bic)) +
-    ggtitle("Forward Stepwise according to BIC") +
-    geom_line(aes(x = x1, y = forward_summary$bic)) +
-    xlab("Number of Variables") + ylab("BIC")+
-    scale_x_continuous(breaks = 1:28)
-ggplot() +
-    geom_point(aes(x = x1, y = forward_summary$adjr2)) +
-    ggtitle("Forward Stepwise according to Adjusted R^2") +
-    geom_line(aes(x = x1, y = forward_summary$adjr2)) +
-    xlab("Number of Variables") + ylab("Adjusted R^2")+
-    scale_x_continuous(breaks = 1:28)
-
-```
-
 
 
 
@@ -202,6 +175,34 @@ ggplot() +
 
 
 ## Models
+Do we want to split the training_data in half and make one half training and the other half available to use for CV testing and then the testing_data.csv is used for the final model predictions since it doesn't have a price column?
+```{r}
+trn = sample(seq_len(nrow(training_df)), 9000)
+training = training_df[trn, ]
+testing = training_df[-trn, ]
+```
+
+
+Baseline: Linear Regression
+```{r}
+
+
+```
+
+
+
+JJ: PCR and PLS
+Jasmine: Regression Splines/Generalized Additive Models
+
+
+
+Trevor: Regression Trees/Bagging/Random Forests
+```{r}
+str(training_df)
+initial_tree = tree(price ~ property_type + room_type + accommodates + bathrooms + bedType + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + host_response_rate + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training)
+summary(initial_tree)
+
+```
 
 
 
@@ -220,13 +221,7 @@ ggplot() +
 
 
 ## Results
-
-
-
-
-
-
-
+Use best model and predict prices for a certain city and plot based on price (heatmap?)
 
 
 
