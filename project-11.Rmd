@@ -225,7 +225,7 @@ print(paste("MSE of Testing Set: ", mean(MSE_testing)))
 Leave One Out Cross Validation on Linear Regression Model:
 ```{r warning = FALSE}
 n = 107
-results = c()
+results_LOOCV = c()
 for(i in seq_len(n)){
   trn <- seq_len(n) != i
   
@@ -238,15 +238,34 @@ for(i in seq_len(n)){
   # estimate test MSE
   true_price = training_df[!trn, ]$price
   
-  results[i] = (true_price - pred)^2
+  results_LOOCV[i] = (true_price - pred)^2
 }
 
-print(paste("Leave One Out Cross Validation", mean(results)))
+print(paste("Leave One Out Cross Validation: ", round(mean(results_LOOCV), 2)))
 ```
 
 k-Fold Cross Validation on Linear Regression Model:
+```{r warning = FALSE}
+k = 10
+folds = sample(seq_len(k), nrow(training_df) , replace = TRUE)
+results_kfold = c()
+for(i in seq_len(k)){
+  trn <- folds != i
+  
+  #fit model
+  l = lm(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training_df[trn, ])
+  
+  # predict on validation set
+  pred = predict(l, training_df[!trn, ])
+  
+  # estimate test MSE
+  true_price = training_df[!trn, ]$price
+  
+  results_kfold[i] = (true_price - pred)^2
+}
 
-
+print(paste("k-fold Cross Validation: ", round(mean(results_kfold), 2)))
+```
 
 
 JJ: PCR and PLS
