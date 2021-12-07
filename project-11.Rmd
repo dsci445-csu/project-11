@@ -50,22 +50,37 @@ head(training_df)
 # update 3 date columns to track the start of the week instead of the individual date
 # create 3 new columns to track dates in the form of month instead of individual date
 training_df = training_df %>%
-  mutate(first_review = cut(training_df$first_review, "week")) %>%
-  mutate(host_since = cut(training_df$host_since, "week")) %>%
-  mutate(last_review = cut(training_df$last_review, "week")) %>%
-  mutate(first_review_month = cut(training_df$first_review, "month")) %>%
-  mutate(last_review_month = cut(training_df$last_review, "month")) %>%
-  mutate(host_since_month = cut(training_df$host_since, "month")) %>%
-  mutate(first_review_year = cut(training_df$first_review, "year")) %>%
-  mutate(last_review_year = cut(training_df$last_review, "year")) %>%
-  mutate(host_since_year = cut(training_df$host_since, "year")) %>%
-  # mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "NA", 0)) %>%
+  mutate(first_review_year = as.Date(cut(training_df$first_review, "year"))) %>%
+  mutate(last_review_year = as.Date(cut(training_df$last_review, "year"))) %>%
+  mutate(host_since_year = as.Date(cut(training_df$host_since, "year"))) %>%
   mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
-  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))   # eliminate blank values
+  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
 
+training_df = training_df %>%
+  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
+  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
+  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
+
+training_df = training_df %>%
+  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014")))
+
+training_df = training_df[complete.cases(training_df), ]
 ```
 
 ```{r}
+# these appear in training set and not testing set so I took them out
+training_df <- training_df %>%
+  filter(property_type != "Chalet") %>%
+  filter(property_type != "Island") %>%
+  filter(property_type != "Tent") %>%
+  filter(property_type != "Treehouse") %>%
+  filter(property_type != "Yurt") %>%
+  filter(property_type != "Hut") %>%
+  filter(property_type != "Train") %>%
+  filter(property_type != "Vacation home")
+
 head(training_df)
 ```
 
@@ -192,14 +207,45 @@ Do we want to split the training_data in half and make one half training and the
 trn = sample(seq_len(nrow(training_df)), 9000)
 training = training_df[trn, ]
 testing = training_df[-trn, ]
+str(testing)
 ```
-
 
 Baseline: Linear Regression
 ```{r}
-
-
+linear = lm(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training)
+summary(linear)
 ```
+
+```{r}
+linear_predict = predict(linear, newdata = testing, type = "response")
+MSE_testing = (testing$price - linear_predict)^2
+print(paste("MSE of Testing Set: ", mean(MSE_testing)))
+```
+
+Leave One Out Cross Validation on Linear Regression Model:
+```{r warning = FALSE}
+n = 107
+results = c()
+for(i in seq_len(n)){
+  trn <- seq_len(n) != i
+  
+  #fit model
+  l = lm(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training_df[trn, ])
+  
+  # predict on validation set
+  pred = predict(l, training_df[!trn, ])
+  
+  # estimate test MSE
+  true_price = training_df[!trn, ]$price
+  
+  results[i] = (true_price - pred)^2
+}
+
+print(paste("Leave One Out Cross Validation", mean(results)))
+```
+
+k-Fold Cross Validation on Linear Regression Model:
+
 
 
 
