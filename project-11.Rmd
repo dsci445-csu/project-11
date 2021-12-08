@@ -69,6 +69,8 @@ training_df = training_df %>%
   mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate))
+
+
 ```
 
 ```{r}
