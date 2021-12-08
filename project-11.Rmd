@@ -23,6 +23,8 @@ library(leaps)
 library(tree)
 library(dplyr)
 library(caret)
+library(gbm)
+library(randomForest)
 ```
 
 ```{r}
@@ -34,7 +36,7 @@ head(original_df)
 probably don't want the individual id of each place, its website url, description, amenities, name, zipcode (we have lat/long and city) and converted log_price to price
 ```{r}
 training_df = original_df %>% 
-  mutate(price = exp(log_price))  %>%
+  mutate(price = log_price)  %>%
   select(-c(id, amenities, description, thumbnail_url, zipcode, name, X, log_price)) %>%
   mutate(first_review = as.Date(original_df$first_review, format = "%Y-%m-%d")) %>%
   mutate(last_review = as.Date(original_df$last_review, format = "%Y-%m-%d")) %>%
@@ -64,9 +66,10 @@ training_df = training_df %>%
 training_df = training_df %>%
   mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
-  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014")))
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate))
 
-training_df = training_df[complete.cases(training_df), ]
+# training_df = training_df[complete.cases(training_df), ]
 ```
 
 ```{r}
@@ -88,7 +91,7 @@ head(training_df)
 ## Price
 ```{r}
 ggplot(data = training_df) +
-  geom_histogram(aes(price), bins = 100) +
+  geom_histogram(aes(price), bins = 25) +
   ggtitle("Listing Price ($)") + 
   geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2)
 
@@ -301,10 +304,27 @@ plot(prune_initial)
 text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
 ```
 
+Bagging/Random Forests: 
+```{r}
+bag_fit <- randomForest(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified  + host_response_rate + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training, importance = FALSE)
+```
+
+```{r}
+data.frame(bag_fit$importance)%>%
+  mutate(variable = rownames(bag_fit$importance)) ## %>%
+  ## mutate(variable = factor(variable, levels = variable[order(MeanDecreaseGini)]))  ## trick to plot variable by descending Gini
+  # ggplot() +
+  # geom_point(aes(MeanDecreaseGini, variable))
+```
 
 
 
 
+Boosting:
+```{r}
+
+
+```
 
 
 
