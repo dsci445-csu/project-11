@@ -384,7 +384,7 @@ data.frame(rf_fit$importance) %>%
 
 Boosting:
 ```{r}
-lambdas = seq(0, 0.5, length.out = 1000)
+lambdas = seq(0, 0.5, length.out = 100)
 trainErrors = rep(NA, length(lambdas))
 testErrors = rep(NA, length(lambdas))
 for(i in 1:length(lambdas)){
@@ -398,9 +398,6 @@ for(i in 1:length(lambdas)){
 
 
 ```{r}
-
-
-
 data.frame(x = lambdas, y = trainErrors) %>%
   ggplot(aes(x = x , y = y)) + geom_point() +
   xlab("Shrinkage") + ylab("Training MSE") + ggtitle("Shrinkage vs Training MSE")
