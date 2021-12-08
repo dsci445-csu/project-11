@@ -26,6 +26,7 @@ library(caret)
 library(gbm)
 library(randomForest)
 library(GGally)
+library(pls)
 ```
 
 ```{r}
@@ -209,6 +210,7 @@ ggcorr(original_df)
 ## Models
 Do we want to split the training_data in half and make one half training and the other half available to use for CV testing and then the testing_data.csv is used for the final model predictions since it doesn't have a price column?
 ```{r}
+set.seed(11)
 trn = sample(seq_len(nrow(training_df)), 9000)
 training = training_df[trn, ]
 testing = training_df[-trn, ]
@@ -274,6 +276,18 @@ print(paste("k-fold Cross Validation: ", round(mean(results_kfold), 2)))
 
 
 JJ: PCR and PLS
+
+```{r}
+#Fit PCR
+m0 <- pcr(price~., data = training_df,ncomp= 30, validation = "CV")
+mse <- MSEP(m0)
+data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
+ggplot() +
+  geom_line(aes(M, mse)) +
+  geom_point(aes(M, mse))
+mse$val
+summary(m0)
+```
 
 
 Jasmine: Regression Splines/Generalized Additive Models
