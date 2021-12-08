@@ -69,7 +69,8 @@ training_df = training_df %>%
   mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
-  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate))
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
+  mutate(cleaning_fee = as.factor(cleaning_fee))
 
 training_df = training_df[complete.cases(training_df), ]
 ```
@@ -84,7 +85,8 @@ training_df <- training_df %>%
   filter(property_type != "Yurt") %>%
   filter(property_type != "Hut") %>%
   filter(property_type != "Train") %>%
-  filter(property_type != "Vacation home")
+  filter(property_type != "Vacation home") %>%
+  select(-c(first_review, last_review, host_since))
 
 head(training_df)
 ```
@@ -200,7 +202,6 @@ head(training_df)
 # Original df
 ggcorr(original_df)
 ```
-
 
 
 
