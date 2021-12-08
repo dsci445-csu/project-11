@@ -70,7 +70,7 @@ training_df = training_df %>%
   mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate))
 
-
+training_df = training_df[complete.cases(training_df), ]
 ```
 
 ```{r}
@@ -196,7 +196,7 @@ Should we first choose we variables should be included in everybody's models or 
 Correlation Plot?
 ```{r}
 head(training_df)
-# Original df jj was here
+# Original df
 ggcorr(original_df)
 ```
 
@@ -291,9 +291,9 @@ initial_tree
 ```
 
 
-```{r}
+```{r warning =FALSE}
 initial_predict = predict(initial_tree, newdata = testing)
-postResample(initial_predict, testing$price)
+print(paste("Test MSE of Initial Tree: ", round(mean((testing$price - initial_predict)^2), 4)))
 
 # cross validation
 initial_cv = cv.tree(initial_tree)
@@ -308,25 +308,87 @@ plot(prune_initial)
 text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
 ```
 
-Bagging/Random Forests: 
+Bagging: 
+mtry = uses all the variables/predictors 
 ```{r}
-bag_fit <- randomForest(price ~ ., data = training, importance = FALSE)
+bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+```
+
+```{r fig.height=5, fig.width=9}
+bag_predict = predict(bag_fit, testing, type = "response")
+print(paste("Test MSE of Bagging: ", round(mean((testing$price - bag_predict)^2), 4)))
+
+ggplot() + 
+  geom_point(aes(x = bag_predict, y = testing$price), alpha = 0.25) + 
+  geom_abline(slope = 1, intercept = 0) + 
+  ggtitle("Performance of Bagging on Test Set")
+
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("% Decreasing MSE of Bagging") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Node Purity of Bagging") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+
+```
+
+Random Forests:
+```{r}
+rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
 ```
 
 ```{r}
-data.frame(bag_fit$importance)%>%
-  mutate(variable = rownames(bag_fit$importance)) ## %>%
-  ## mutate(variable = factor(variable, levels = variable[order(MeanDecreaseGini)]))  ## trick to plot variable by descending Gini
-  # ggplot() +
-  # geom_point(aes(MeanDecreaseGini, variable))
+rf_predict = predict(rf_fit, testing, type = "response")
+print(paste("Test MSE of Random Forest: ", round(mean((testing$price - rf_predict)^2), 4)))
+
+ggplot() + 
+  geom_point(aes(x = rf_predict, y = testing$price), alpha = 0.25) + 
+  geom_abline(slope = 1, intercept = 0) + 
+  ggtitle("Performance of Bagging on Test Set")
+
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("% Decreasing MSE of Random Forest") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Node Purity of Random Forest") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+
+
 ```
-
-
 
 
 Boosting:
 ```{r}
+lambdas = seq(0, 0.5, length.out = 1000)
+trainErrors = rep(NA, length(lambdas))
+testErrors = rep(NA, length(lambdas))
+for(i in 1:length(lambdas)){
+  boost = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[i], distribution = "gaussian")
+  trainPred = predict(boost, training, n.trees = 1000)
+  testPred = predict(boost, testing, n.trees = 1000)
+  trainErrors[i] = mean((training$price - trainPred)^2)
+  testErrors[i] = mean((testing$price - testPred)^2)
+}
+```
 
+
+```{r}
+
+
+
+data.frame(x = lambdas, y = trainErrors) %>%
+  ggplot(aes(x = x , y = y)) + geom_point() +
+  xlab("Shrinkage") + ylab("Training MSE") + ggtitle("Shrinkage vs Training MSE")
 
 ```
 
