@@ -25,6 +25,7 @@ library(dplyr)
 library(caret)
 library(gbm)
 library(randomForest)
+library(GGally)
 ```
 
 ```{r}
@@ -195,7 +196,8 @@ Should we first choose we variables should be included in everybody's models or 
 Correlation Plot?
 ```{r}
 head(training_df)
-
+# Original df
+ggcorr(original_df)
 ```
 
 
@@ -272,6 +274,8 @@ print(paste("k-fold Cross Validation: ", round(mean(results_kfold), 2)))
 
 
 JJ: PCR and PLS
+
+
 Jasmine: Regression Splines/Generalized Additive Models
 
 
