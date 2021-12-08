@@ -194,7 +194,7 @@ Should we first choose we variables should be included in everybody's models or 
 Correlation Plot?
 ```{r}
 head(training_df)
-# Original df
+# Original df jj was here
 ggcorr(original_df)
 ```
 
