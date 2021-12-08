@@ -38,7 +38,7 @@ probably don't want the individual id of each place, its website url, descriptio
 ```{r}
 training_df = original_df %>% 
   mutate(price = log_price)  %>%
-  select(-c(id, amenities, description, thumbnail_url, zipcode, name, X, log_price)) %>%
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, eighbourhood, X, log_price)) %>%
   mutate(first_review = as.Date(original_df$first_review, format = "%Y-%m-%d")) %>%
   mutate(last_review = as.Date(original_df$last_review, format = "%Y-%m-%d")) %>%
   mutate(host_since = as.Date(original_df$host_since, format = "%Y-%m-%d")) %>%
@@ -69,8 +69,6 @@ training_df = training_df %>%
   mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
   mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate))
-
-# training_df = training_df[complete.cases(training_df), ]
 ```
 
 ```{r}
@@ -217,7 +215,7 @@ str(testing)
 
 Baseline: Linear Regression
 ```{r}
-linear = lm(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training)
+linear = lm(price ~ ., data = training)
 summary(linear)
 ```
 
@@ -235,7 +233,7 @@ for(i in seq_len(n)){
   trn <- seq_len(n) != i
   
   #fit model
-  l = lm(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training_df[trn, ])
+  l = lm(price ~ ., data = training_df[trn, ])
   
   # predict on validation set
   pred = predict(l, training_df[!trn, ])
@@ -258,7 +256,7 @@ for(i in seq_len(k)){
   trn <- folds != i
   
   #fit model
-  l = lm(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training_df[trn, ])
+  l = lm(price ~ ., data = training_df[trn, ])
   
   # predict on validation set
   pred = predict(l, training_df[!trn, ])
@@ -283,7 +281,7 @@ Jasmine: Regression Splines/Generalized Additive Models
 Trevor: Regression Trees/Bagging/Random Forests
 ```{r} 
 # fit regression tree
-initial_tree = tree(price ~ property_type + room_type + accommodates + bathrooms + bed_type + cancellation_policy + cleaning_fee + city + host_has_profile_pic + host_identity_verified  + host_response_rate + instant_bookable + latitude + longitude + number_of_reviews + review_scores_rating + bedrooms + beds + first_review_year + last_review_year + host_since_year, data = training)
+initial_tree = tree(price ~ ., data = training)
 summary(initial_tree)
 plot(initial_tree)
 text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
