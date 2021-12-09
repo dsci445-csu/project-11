@@ -283,14 +283,34 @@ JJ: PCR and PLS
 
 ```{r}
 #Fit PCR
-m0 <- pcr(price~., data = training_df,ncomp= 30, validation = "CV")
+m0 <- pcr(price~., data = training,ncomp= 25, validation = "CV")
 mse <- MSEP(m0)
 data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
 ggplot() +
   geom_line(aes(M, mse)) +
   geom_point(aes(M, mse))
+# based off of plot we will select 25 components (elbow method)
 mse$val
 summary(m0)
+
+# R^2 vs Principal Compenets Plot
+validationplot(m0, val.type = "R2")
+
+# Test Set Predictions
+pcr_pred <- predict(m0, testing, ncomp = 20)
+
+# Prediction Plot
+predplot(m0, ncomp = 20)
+
+# Check for NA values
+sum(is.na(pcr_pred))
+sum(is.na(testing$price))
+
+# Calculate Test Set MSE
+PCR_mse <- round(mean((testing$price - pcr_pred)^2), 4)
+PCR_mse
+
+
 ```
 
 
