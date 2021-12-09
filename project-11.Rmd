@@ -361,7 +361,7 @@ Best spline was on accommodates with 4 degrees of freedom
 gammod <- lm(price ~ . + bs(accommodates, df = 4) + bs(review_scores_rating, df = 3) + bs(bathrooms, df = 3) + bs(bedrooms, df = 4), data = training_df)
 summary(gammod)
 ```
-GAM was my best performing model, but didn't perform super well.
+GAM was my best performing model, but overall didn't perform super well. Probably not our best model.
 
 
 
