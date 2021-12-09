@@ -354,12 +354,14 @@ fit2 <- glm(price ~ bs(bedrooms, df = 4), data = training_df)
 cvs2 <- cv.glm(training_df, fit2, K = 10)$delta[1]
 ```
 
+Best spline was on accommodates with 4 degrees of freedom
+
 ```{r}
 #fit GAM
 gammod <- lm(price ~ . + bs(accommodates, df = 4) + bs(review_scores_rating, df = 3) + bs(bathrooms, df = 3) + bs(bedrooms, df = 4), data = training_df)
 summary(gammod)
 ```
-
+GAM was my best performing model, but didn't perform super well.
 
 
 
