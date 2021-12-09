@@ -322,17 +322,17 @@ ggpairs(training_df, columns = c(9:14, 19))
 ggpairs(training_df, columns = 15:22)
 
 #spline on accommodates
-fit0 <- glm(price ~ bs(accommodates, df = 2), data = training_df)
-cvs0 <- cv.glm(training_df, fit0, K = 10)$delta[1]
+fit0 <- glm(price ~ bs(accommodates, df = 2), data = training)
+cvs0 <- cv.glm(testing, fit0, K = 10)$delta[1]
 
-fit <- glm(price ~ bs(accommodates, df = 3), data = training_df)
-cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
+fit <- glm(price ~ bs(accommodates, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
 
-fit2 <- glm(price ~ bs(accommodates, df = 4), data = training_df)
-cvs2 <- cv.glm(training_df, fit2, K = 10)$delta[1]
+fit2 <- glm(price ~ bs(accommodates, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
 
-fit3 <- glm(price ~ bs(accommodates, df = 5), data = training_df)
-cvs3 <- cv.glm(training_df, fit3, K = 10)$delta[1]
+fit3 <- glm(price ~ bs(accommodates, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
   
 degfree <- c(2, 3, 4, 5)
 cv <- c(cvs0, cvs, cvs2, cvs3)
@@ -340,14 +340,14 @@ df_accomodates <- data.frame(degfree, cv)
 df_accomodates
 
 #spline on review_scores_rating
-fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training_df)
-cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
+fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
 
-fit2 <- glm(price ~ bs(review_scores_rating, df = 4), data = training_df)
-cvs2 <- cv.glm(training_df, fit2, K = 10)$delta[1]
+fit2 <- glm(price ~ bs(review_scores_rating, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
 
-fit3 <- glm(price ~ bs(review_scores_rating, df = 5), data = training_df)
-cvs3 <- cv.glm(training_df, fit3, K = 10)$delta[1]
+fit3 <- glm(price ~ bs(review_scores_rating, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
 
 degfree <- c(3, 4, 5)
 cv <- c(cvs, cvs2, cvs3)
@@ -355,14 +355,14 @@ df_reviews <- data.frame(degfree, cv)
 df_reviews
 
 #spline on bathrooms
-fit <- glm(price ~ bs(bathrooms, df = 3), data = training_df)
-cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
+fit <- glm(price ~ bs(bathrooms, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
 
-fit2 <- glm(price ~ bs(bathrooms, df = 4), data = training_df)
-cvs2 <- cv.glm(training_df, fit2, K = 10)$delta[1]
+fit2 <- glm(price ~ bs(bathrooms, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
 
-fit3 <- glm(price ~ bs(bathrooms, df = 5), data = training_df)
-cvs3 <- cv.glm(training_df, fit3, K = 10)$delta[1]
+fit3 <- glm(price ~ bs(bathrooms, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
 
 degfree <- c(3, 4, 5)
 cv <- c(cvs, cvs2, cvs3)
@@ -370,19 +370,28 @@ df_bathrooms <- data.frame(degfree, cv)
 df_bathrooms
 
 #spline on bedrooms
-fit <- glm(price ~ bs(bedrooms, df = 3), data = training_df)
-cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
+fit <- glm(price ~ bs(bedrooms, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
 
-fit2 <- glm(price ~ bs(bedrooms, df = 4), data = training_df)
-cvs2 <- cv.glm(training_df, fit2, K = 10)$delta[1]
+fit2 <- glm(price ~ bs(bedrooms, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+degfree <- c(3, 4)
+cv <- c(cvs, cvs2)
+df_bedrooms <- data.frame(degfree, cv)
+df_bedrooms
 ```
 
 Best spline was on accommodates with 4 degrees of freedom
 
 ```{r}
 #fit GAM
-gammod <- lm(price ~ . + bs(accommodates, df = 4) + bs(review_scores_rating, df = 3) + bs(bathrooms, df = 3) + bs(bedrooms, df = 4), data = training_df)
+gammod <- lm(price ~ . + bs(accommodates, df = 4) + bs(review_scores_rating, df = 3) + bs(bathrooms, df = 3) + bs(bedrooms, df = 4), data = training)
 summary(gammod)
+
+gam_predict = predict(gammod, newdata = testing)
+gam_MSE = round(mean((testing$price - gam_predict)^2), 4)
+print(paste("Test MSE of GAM: ", gam_MSE))
 ```
 GAM was my best performing model, but overall didn't perform super well. Probably not our best model.
 
@@ -541,7 +550,7 @@ print(paste("Testing MSE for Boosted Model:", boosted_MSE))
 ## MSE Table
 ```{r}
 method = c("Linear Regression", "PCR", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
-MSEnumbers = c(linearReg_kfold_MSE, 0, csv2, 0, tree_MSE, bagMSE, rf_MSE, boosted_MSE)
+MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, csv2, gam_MSE, tree_MSE, bagMSE, rf_MSE, boosted_MSE)
 
 finalMSE = data.frame(Methods = method, MSE = MSEnumbers)
 finalMSE
