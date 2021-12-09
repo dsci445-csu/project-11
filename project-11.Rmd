@@ -295,6 +295,7 @@ Jasmine: Regression Splines/Generalized Additive Models
 
 
 
+
 Trevor: Regression Trees/Bagging/Random Forests
 ```{r} 
 # fit regression tree
@@ -409,13 +410,12 @@ data.frame(x = lambdas, y = testErrors) %>%
 ```
 
 ```{r}
-boosted = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
+boosted = gbm(price ~ ., data = training, n.trees = 5000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
 summary(boosted)
 
 boosted_pred = predict(boosted, testing)
 print(paste("Testing MSE for Boosted Model:", round(mean((testing$price - boosted_pred)^2), 4)))
 ```
-
 
 
 
