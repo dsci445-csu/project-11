@@ -362,7 +362,6 @@ Choose spline on accommodates with df = 5
 
 ```{r}
 #fit GAM
-
 ```
 
 
