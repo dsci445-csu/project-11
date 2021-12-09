@@ -475,9 +475,19 @@ data.frame(x = lambdas, y = trainErrors) %>%
   ggplot(aes(x = x , y = y)) + geom_point() +
   xlab("Shrinkage") + ylab("Training MSE") + ggtitle("Shrinkage vs Training MSE")
 
+data.frame(x = lambdas, y = testErrors) %>%
+  ggplot(aes(x = x , y = y)) + geom_point() +
+  xlab("Shrinkage") + ylab("Test MSE") + ggtitle("Shrinkage vs Test MSE")
+
 ```
 
+```{r}
+boosted = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
+summary(boosted)
 
+boosted_pred = predict(boosted, testing)
+print(paste("Testing MSE for Boosted Model:", round(mean((testing$price - boosted_pred)^2), 4)))
+```
 
 
 
