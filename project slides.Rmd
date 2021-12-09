@@ -53,6 +53,20 @@ library(boot)
 - 
 
 
+# Baseline Regression
+
+
+
+# Regression Splines/Generalized Additive Models
+
+
+
+# PCR and PLS
+- 10 Fold Cross-Validation was performed for number of components ranging from 1 to 25.
+- The Cross-Validation MSE was used to pick optimal number of components for both models.
+
+
+
 # Questions?
 
 
