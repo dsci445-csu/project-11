@@ -27,6 +27,8 @@ library(gbm)
 library(randomForest)
 library(GGally)
 library(pls)
+library(splines)
+library(boot)
 ```
 
 ```{r}
@@ -344,8 +346,6 @@ PLS_mse
 
 Jasmine: Regression Splines/Generalized Additive Models
 ```{r}
-library(splines)
-library(boot)
 head(training_df)
 ggpairs(training_df, columns = c(2:8, 19))
 ggpairs(training_df, columns = c(9:14, 19))
@@ -353,7 +353,7 @@ ggpairs(training_df, columns = 15:22)
 
 #spline on accommodates
 fit0 <- glm(price ~ bs(accommodates, df = 2), data = training_df)
-cvs0 <- cv.glm(training_df, fit, K = 10)$delta[1]
+cvs0 <- cv.glm(training_df, fit0, K = 10)$delta[1]
 
 fit <- glm(price ~ bs(accommodates, df = 3), data = training_df)
 cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
@@ -366,8 +366,8 @@ cvs3 <- cv.glm(training_df, fit3, K = 10)$delta[1]
   
 degfree <- c(2, 3, 4, 5)
 cv <- c(cvs0, cvs, cvs2, cvs3)
-df <- data.frame(degfree, cv)
-
+df_accomodates <- data.frame(degfree, cv)
+df_accomodates
 
 #spline on review_scores_rating
 fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training_df)
@@ -381,7 +381,8 @@ cvs3 <- cv.glm(training_df, fit3, K = 10)$delta[1]
 
 degfree <- c(3, 4, 5)
 cv <- c(cvs, cvs2, cvs3)
-df <- data.frame(degfree, cv)
+df_reviews <- data.frame(degfree, cv)
+df_reviews
 
 #spline on bathrooms
 fit <- glm(price ~ bs(bathrooms, df = 3), data = training_df)
@@ -395,7 +396,8 @@ cvs3 <- cv.glm(training_df, fit3, K = 10)$delta[1]
 
 degfree <- c(3, 4, 5)
 cv <- c(cvs, cvs2, cvs3)
-df <- data.frame(degfree, cv)
+df_bathrooms <- data.frame(degfree, cv)
+df_bathrooms
 
 #spline on bedrooms
 fit <- glm(price ~ bs(bedrooms, df = 3), data = training_df)
@@ -430,7 +432,8 @@ initial_tree
 
 ```{r warning =FALSE}
 initial_predict = predict(initial_tree, newdata = testing)
-print(paste("Test MSE of Initial Tree: ", round(mean((testing$price - initial_predict)^2), 4)))
+tree_MSE = round(mean((testing$price - initial_predict)^2), 4)
+print(paste("Test MSE of Initial Tree: ", tree_MSE))
 
 # cross validation
 initial_cv = cv.tree(initial_tree)
@@ -453,7 +456,8 @@ bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, i
 
 ```{r fig.height=5, fig.width=9}
 bag_predict = predict(bag_fit, testing, type = "response")
-print(paste("Test MSE of Bagging: ", round(mean((testing$price - bag_predict)^2), 4)))
+bag_MSE = round(mean((testing$price - bag_predict)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSE))
 
 ggplot() + 
   geom_point(aes(x = bag_predict, y = testing$price), alpha = 0.25) + 
@@ -505,7 +509,8 @@ rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 
 
 ```{r}
 rf_predict = predict(rf_fit, testing, type = "response")
-print(paste("Test MSE of Random Forest: ", round(mean((testing$price - rf_predict)^2), 4)))
+rf_MSE = round(mean((testing$price - rf_predict)^2), 4)
+print(paste("Test MSE of Random Forest: ", rf_MSE))
 
 ggplot() + 
   geom_point(aes(x = rf_predict, y = testing$price), alpha = 0.25) + 
@@ -559,15 +564,18 @@ boosted = gbm(price ~ ., data = training, n.trees = 5000, shrinkage = lambdas[wh
 summary(boosted)
 
 boosted_pred = predict(boosted, testing)
-print(paste("Testing MSE for Boosted Model:", round(mean((testing$price - boosted_pred)^2), 4)))
+boosted_MSE = round(mean((testing$price - boosted_pred)^2), 4)
+print(paste("Testing MSE for Boosted Model:", boosted_MSE))
 ```
 
 ## MSE Table
 ```{r}
 method = c("Linear Regression", "PCR", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
-MSEnumbers = c(linearReg_kfold_MSE, 0, 0, 0, 0, 0, 0, 0)
+MSEnumbers = c(linearReg_kfold_MSE, 0, csv2, 0, tree_MSE, bagMSE, rf_MSE, boosted_MSE)
 
 finalMSE = data.frame(Methods = method, MSE = MSEnumbers)
+finalMSE
+
 ```
 
 
