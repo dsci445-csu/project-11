@@ -272,7 +272,8 @@ for(i in seq_len(k)){
   results_kfold[i] = (true_price - pred)^2
 }
 
-print(paste("k-fold Cross Validation: ", round(mean(results_kfold), 2)))
+linearReg_kfold_MSE = round(mean(results_kfold), 2)
+print(paste("k-fold Cross Validation: ", linearReg_kfold_MSE))
 ```
 
 
@@ -426,7 +427,7 @@ data.frame(bag_fit$importance) %>%
 ```
 
 ```{r}
-k = 10
+k = 5
 folds = sample(seq_len(k), nrow(training_df) , replace = TRUE)
 results_kfold_bagging = c()
 for(i in seq_len(k)){
@@ -512,6 +513,15 @@ summary(boosted)
 boosted_pred = predict(boosted, testing)
 print(paste("Testing MSE for Boosted Model:", round(mean((testing$price - boosted_pred)^2), 4)))
 ```
+
+## MSE Table
+```{r}
+method = c("Linear Regression", "PCR", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
+MSEnumbers = c(linearReg_kfold_MSE, 0, 0, 0, 0, 0, 0, 0)
+
+finalMSE = data.frame(Methods = method, MSE = MSEnumbers)
+```
+
 
 
 
