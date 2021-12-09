@@ -1,0 +1,50 @@
+---
+title: "Predicting AirBnB Rental Prices"
+author: "Group 11: Trevor Isaacson, Jonathan Olavarria, Jasmine DeMeyer"
+date: "12/10/2021"
+output: beamer_presentation #:
+    #theme: "Frankfurt"
+    #colortheme: "orchid"
+---
+
+```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = FALSE)
+set.seed(445)
+knitr::opts_chunk$set(message = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(e1071)
+library(rmarkdown)
+library(glmnet)
+library(knitr)
+library(leaps)
+library(tree)
+library(dplyr)
+library(caret)
+library(gbm)
+library(randomForest)
+library(GGally)
+library(pls)
+```
+
+# Motivation
+
+- You are looking for some additional income and decide renting on AirBnB is the best option
+- How much should you rent your extra space for?
+
+
+# Data
+
+
+
+
+
+
+# Questions?
+
+
+
+
+## References
+

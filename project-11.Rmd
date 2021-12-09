@@ -425,6 +425,30 @@ data.frame(bag_fit$importance) %>%
 
 ```
 
+```{r}
+k = 10
+folds = sample(seq_len(k), nrow(training_df) , replace = TRUE)
+results_kfold_bagging = c()
+for(i in seq_len(k)){
+  trn <- folds != i
+  
+  #fit model
+  l <- randomForest(price ~ ., data = training_df[trn, ], mtry = ncol(training_df[trn, ]) - 1, importance = TRUE)
+  
+  # predict on validation set
+  pred = predict(l, training_df[!trn, ])
+  
+  # estimate test MSE
+  true_price = training_df[!trn, ]$price
+  
+  results_kfold_bagging[i] = (true_price - pred)^2
+}
+
+print(paste("k-fold Cross Validation of Bagging: ", round(mean(results_kfold_bagging), 2)))
+```
+
+
+
 Random Forests:
 ```{r}
 rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
