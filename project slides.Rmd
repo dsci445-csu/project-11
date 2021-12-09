@@ -62,8 +62,50 @@ library(boot)
 
 
 # PCR and PLS
-- 10 Fold Cross-Validation was performed for number of components ranging from 1 to 25.
+
+- 10 Fold Cross-Validation was performed for number of components ranging from 1 to 20.
 - The Cross-Validation MSE was used to pick optimal number of components for both models.
+
+# PCR
+
+```{r, echo = FALSE}
+#Fit PCR
+m0 <- pcr(price~., data = training,ncomp= 20, validation = "CV")
+mse <- MSEP(m0)
+data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
+ggplot() +
+  geom_line(aes(M, mse)) +
+  geom_point(aes(M, mse)) + ggtitle("Principal Component Regression MSE") +xlab("Number of Components")
+```
+
+# PCR Predictions
+
+```{r, include = FALSE}
+
+```
+
+
+# PLS
+
+```{r,echo = FALSE}
+m1 <- plsr(price~., data=training, validation="CV",ncomp=20)
+
+# Plot MSE
+mse1 <- MSEP(m1)
+data.frame(M = mse1$comps, mse = t(as.data.frame(mse1$val))[, "CV"]) %>%
+ggplot() +
+  geom_line(aes(M, mse)) +
+  geom_point(aes(M, mse))
+
+```
+
+
+
+# PLS Predictions
+
+```{r, include = FALSE}
+
+```
 
 
 

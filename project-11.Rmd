@@ -283,13 +283,13 @@ JJ: PCR and PLS
 
 ```{r}
 #Fit PCR
-m0 <- pcr(price~., data = training,ncomp= 25, validation = "CV")
+m0 <- pcr(price~., data = training,ncomp= 20, validation = "CV")
 mse <- MSEP(m0)
 data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
 ggplot() +
   geom_line(aes(M, mse)) +
   geom_point(aes(M, mse))
-# based off of plot we will select 20 components (elbow method) = 99.9% of variance explained
+# based off of plot we will select 15 components (elbow method) = 99.97% of variance explained
 mse$val
 summary(m0)
 
@@ -297,10 +297,10 @@ summary(m0)
 validationplot(m0, val.type = "R2")
 
 # Test Set Predictions
-pcr_pred <- predict(m0, testing, ncomp = 20)
+pcr_pred <- predict(m0, testing, ncomp = 15)
 
 # Prediction Plot
-predplot(m0, ncomp = 20)
+predplot(m0, ncomp = 15)
 
 # Check for NA values
 sum(is.na(pcr_pred))
@@ -316,7 +316,7 @@ PCR_mse
 
 ```{r}
 # Fit PLS
-m1 <- plsr(price~., data=training, validation="CV",ncomp=25)
+m1 <- plsr(price~., data=training, validation="CV",ncomp=20)
 
 # Plot MSE
 mse1 <- MSEP(m1)
