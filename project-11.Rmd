@@ -287,7 +287,7 @@ data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
 ggplot() +
   geom_line(aes(M, mse)) +
   geom_point(aes(M, mse))
-# based off of plot we will select 25 components (elbow method)
+# based off of plot we will select 20 components (elbow method) = 99.9% of variance explained
 mse$val
 summary(m0)
 
@@ -308,6 +308,36 @@ sum(is.na(testing$price))
 PCR_mse <- round(mean((testing$price - pcr_pred)^2), 4)
 PCR_mse
 
+
+```
+
+
+```{r}
+# Fit PLS
+m1 <- plsr(price~., data=training, validation="CV",ncomp=25)
+
+# Plot MSE
+mse1 <- MSEP(m1)
+data.frame(M = mse1$comps, mse = t(as.data.frame(mse1$val))[, "CV"]) %>%
+ggplot() +
+  geom_line(aes(M, mse)) +
+  geom_point(aes(M, mse))
+
+# Number of Components chosen is 10 = 99.93% of Variance Explained
+summary(m1)
+
+# Test Set Predictions
+pls_pred <- predict(m1, testing, ncomp = 10)
+
+# Prediction Plot
+predplot(m1, ncomp = 10)
+
+# Check for NA values
+sum(is.na(pls_pred))
+
+# Calculate Test Set MSE
+PLS_mse <- round(mean((testing$price - pls_pred)^2), 4)
+PLS_mse
 
 ```
 
