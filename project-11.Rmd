@@ -194,7 +194,7 @@ training_df %>%
 
 
 ## Variable Selection?
-Should we first choose we variables should be included in everybody's models or have everybody make their two models and then variable select based on the best model they found? 
+Should we first choose which variables should be included in everybody's models or have everybody make their two models and then variable select based on the best model they found? 
 
 Correlation Plot?
 ```{r}
@@ -292,6 +292,79 @@ summary(m0)
 
 
 Jasmine: Regression Splines/Generalized Additive Models
+```{r}
+library(splines)
+library(boot)
+head(training_df)
+ggpairs(training_df, columns = c(2:8, 19))
+ggpairs(training_df, columns = c(9:14, 19))
+ggpairs(training_df, columns = 15:22)
+
+#spline on accommodates
+fit <- glm(price ~ bs(accommodates, df = 3), data = training_df)
+cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(accommodates, df = 4), data = training_df)
+cvs2 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(accommodates, df = 5), data = training_df)
+cvs3 <- cv.glm(training_df, fit, K = 10)$delta[1]
+  
+fit4 <- glm(price ~ bs(accommodates, df = 6), data = training_df)
+cvs4 <- cv.glm(training_df, fit, K = 10)$delta[1]
+  
+fit5 <- glm(price ~ bs(accommodates, df = 7), data = training_df)
+cvs5 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit6 <- glm(price ~ bs(accommodates, df = 8), data = training_df)
+cvs6 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit7 <- glm(price ~ bs(accommodates, df = 9), data = training_df)
+cvs7 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit8 <- glm(price ~ bs(accommodates, df = 10), data = training_df)
+cvs8 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5, 6, 7, 8, 9, 10)
+cv <- c(cvs, cvs2, cvs3, cvs4, cvs5, cvs6, cvs7, cvs8)
+df <- data.frame(degfree, cv)
+
+#spline on review_scores_rating
+fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training_df)
+cvs <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(review_scores_rating, df = 4), data = training_df)
+cvs2 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(review_scores_rating, df = 5), data = training_df)
+cvs3 <- cv.glm(training_df, fit, K = 10)$delta[1]
+  
+fit4 <- glm(price ~ bs(review_scores_rating, df = 6), data = training_df)
+cvs4 <- cv.glm(training_df, fit, K = 10)$delta[1]
+  
+fit5 <- glm(price ~ bs(review_scores_rating, df = 7), data = training_df)
+cvs5 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit6 <- glm(price ~ bs(review_scores_rating, df = 8), data = training_df)
+cvs6 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit7 <- glm(price ~ bs(review_scores_rating, df = 9), data = training_df)
+cvs7 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+fit8 <- glm(price ~ bs(review_scores_rating, df = 10), data = training_df)
+cvs8 <- cv.glm(training_df, fit, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5, 6, 7, 8, 9, 10)
+cv <- c(cvs, cvs2, cvs3, cvs4, cvs5, cvs6, cvs7, cvs8)
+df <- data.frame(degfree, cv)
+```
+Choose spline on accommodates with df = 5
+
+```{r}
+#fit GAM
+
+```
+
 
 
 
