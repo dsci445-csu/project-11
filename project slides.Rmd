@@ -204,6 +204,7 @@ text(initial_tree, cex = 1, digits = 4, pretty = 0)
 ```
 
 # Bagging
+
 ```{r echo = TRUE}
 bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
 bag_predict = predict(bag_fit, testing, type = "response")
@@ -212,7 +213,8 @@ print(paste("Test MSE of Bagging: ", bag_MSE))
 ```
 
 # Bagging
-```{r, fig.show='hold', fig.height = 7, out.width="50%"}
+
+```{r, echo = FALSE, fig.show='hold', fig.height = 7, out.width="50%"}
 data.frame(bag_fit$importance) %>%
   mutate(variable = rownames(bag_fit$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
@@ -228,12 +230,65 @@ data.frame(bag_fit$importance) %>%
 ```
 
 # Random Forests
-```{r}
 
+```{r echo = TRUE}
+rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
+```
 
+```{r echo = FALSE}
+rf_predict = predict(rf_fit, testing, type = "response")
+rf_MSE = round(mean((testing$price - rf_predict)^2), 4)
+print(paste("Test MSE of Random Forest: ", rf_MSE))
+```
+
+# Random Forests
+
+```{r, echo = FALSE, fig.show='hold', fig.height = 7, out.width="50%"}
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("% Decreasing MSE of Random Forest") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Node Purity of Random Forest") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
 
 ```
 
+# Boosting
+
+```{r echo = FALSE, fig.show='hold', fig.height = 7}
+lambdas = seq(0, 0.5, length.out = 100)
+trainErrors = rep(NA, length(lambdas))
+testErrors = rep(NA, length(lambdas))
+for(i in 1:length(lambdas)){
+  boost = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[i], distribution = "gaussian")
+  trainPred = predict(boost, training, n.trees = 1000)
+  testPred = predict(boost, testing, n.trees = 1000)
+  trainErrors[i] = mean((training$price - trainPred)^2)
+  testErrors[i] = mean((testing$price - testPred)^2)
+}
+
+data.frame(x = lambdas, y = trainErrors) %>%
+  ggplot(aes(x = x , y = y)) + geom_point() +
+  xlab("Shrinkage") + ylab("Training MSE") + ggtitle("Shrinkage vs Training MSE")
+```
+
+# Boosting 
+
+```{r echo = FALSE}
+boosted = gbm(price ~ ., data = training, n.trees = 5000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
+summary(boosted)
+
+boosted_pred = predict(boosted, testing)
+boosted_MSE = round(mean((testing$price - boosted_pred)^2), 4)
+print(paste("Testing MSE for Boosted Model:", boosted_MSE))
+```
+
+# 
 
 
 # Questions?
