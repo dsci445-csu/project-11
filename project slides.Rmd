@@ -212,7 +212,7 @@ print(paste("Test MSE of GAM: ", gam_MSE))
 # Future Modeling with Splines
 
 - Received errors when using degrees of freedom larger than 6 or so
-- Want to look into these errors and figure out if I could try larger degrees of freedom in my splines to get a better model
+- Want to look into these errors and figure out if I could try larger degrees of freedom in my splines to get a better model.
 
 
 
