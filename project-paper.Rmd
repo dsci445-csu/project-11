@@ -104,19 +104,62 @@ ggplot(data = training_df) +
   Note: Because the original price data is very heavily skewed, we needed to log transform the prices.  This gives a normal distribution of prices allowing for better prediction capabilities and interpretability.
 
   - property_type: defines the type of property listed
-      - There are 21 different types including anything from apartments, houses, and condos to boats, cabins, hostels and even castles
+      - There are 21 different types ranging from apartments, houses, and condos to boats, cabins, hostels and even castles
   
-  - room_type
+  - room_type: defines type of rental within the property
+      - Includes entire home/apt, private room and shared room
   
-  - accommodates
+  - accommodates: number of people the property can comfortably accommodate
   
-  - bedrooms
+  - bedrooms: number of bedrooms within the property
   
-  - beds
+  - beds: number of beds within the property
   
-  - bed_type 
+  - bed_type: type of bed available
+      - This includes a Real Bed, Futon, Pull-out Sofa,	Airbed or Couch
+      - Only 463 listings have something other than a Real Bed
   
-  - bathrooms
+  - bathrooms: number of bathrooms within the property
+  
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
+training_df %>%
+  group_by(accommodates) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  ggplot() + 
+  geom_point(aes(x = accommodates, y = Total)) + 
+  geom_line(aes(x = accommodates, y = Total)) +
+  ggtitle("Accommodates Distribution") + scale_x_continuous(breaks = c(0:16))
+
+training_df %>%
+  group_by(beds) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  ggplot() + 
+  geom_point(aes(x = beds, y = Total)) + 
+  geom_line(aes(x = beds, y = Total)) +
+  ggtitle("Beds Distribution") + scale_x_continuous(breaks = c(0:20))
+```
+
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
+training_df %>%
+  group_by(bedrooms) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  ggplot() +
+  geom_point(aes(x = bedrooms, y = Total)) + 
+  geom_line(aes(x = bedrooms, y = Total)) +
+  ggtitle("Bedrooms Distribution") + scale_x_continuous(breaks = c(0:10))
+
+training_df %>%
+  group_by(bathrooms) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  ggplot() +
+  geom_point(aes(x = bathrooms, y = Total)) + 
+  geom_line(aes(x = bathrooms, y = Total)) +
+  ggtitle("Bathrooms Distribution") + scale_x_continuous(breaks = c(0:8))
+```
   
 Location includes:
 
