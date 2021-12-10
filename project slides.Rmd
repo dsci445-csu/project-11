@@ -191,7 +191,6 @@ ggplot() +
 ```
 
 # Regression Trees
-
 ```{r echo = FALSE, fig.show='hold', fig.height = 7}
 plot(initial_tree)
 text(initial_tree, cex = 1, digits = 4, pretty = 0)
@@ -332,11 +331,21 @@ testing_df = testing_df[complete.cases(testing_df), ]
 
 ```
 
-```{r}
+```{r echo = FALSE}
 levels(testing_df$property_type) <- levels(training_df$property_type)
-final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, n = 200)
+final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntrees = 200)
 final_predict = predict(final_fit, testing_df, type = "response")
 ```
+
+```{r}
+head(final_predict)
+length(final_predict)
+nrow(testing_df)
+testing_df$price = final_predict
+
+```
+
+
 
 # Questions?
 
