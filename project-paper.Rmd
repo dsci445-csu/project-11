@@ -87,7 +87,8 @@ The original dataset contained 30 variables about each listing.  Due to high cor
 
 Property includes:
 
-  - price: listing price        
+  - price: listing price    
+      - Note: Because the original price data is very heavily skewed, we needed to log transform the prices.  This gives a normal distribution of prices allowing for better prediction capabilities and interpretability.
 
 ```{r fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
 ggplot(data = training_df) +
@@ -100,8 +101,6 @@ ggplot(data = training_df) +
   ggtitle("Log of Listing Price ($)") + 
   geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2) + xlab("log(price)")
 ```   
-
-  Note: Because the original price data is very heavily skewed, we needed to log transform the prices.  This gives a normal distribution of prices allowing for better prediction capabilities and interpretability.
 
   - property_type: defines the type of property listed
       - There are 21 different types ranging from apartments, houses, and condos to boats, cabins, hostels and even castles
@@ -163,9 +162,21 @@ training_df %>%
   
 Location includes:
 
-  - city
-  - latitude 
-  - longitude
+  - city: Location of listing
+  
+  - latitude and longitude: latitude and longitude coordinates of the listing
+  
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
+training_df %>%
+  group_by(city) %>%
+  ggplot() + geom_bar(aes(city)) + 
+  ggtitle("City Distribution")
+
+latlong = training_df[training_df$longitude > -73, ]
+ggplot(data = latlong) +
+  geom_point(aes(x = longitude, y = latitude, color = city)) +
+  ggtitle("Listings in Boston")
+```
   
 Host includes: 
 
