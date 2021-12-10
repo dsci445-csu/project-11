@@ -5,27 +5,150 @@ date: "12/10/2021"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo = FALSE}
+set.seed(445)
 knitr::opts_chunk$set(echo = FALSE)
-library(tidyr)
-library(tidyverse)
-library(rmarkdown)
+knitr::opts_chunk$set(fig.width=5, fig.height=3) 
 library(ggplot2)
-library(dbplyr)
-library(tinytex)
-# Hi its jj
+library(tidyverse)
+library(tidyr)
+library(e1071)
+library(rmarkdown)
+library(glmnet)
+library(knitr)
+library(leaps)
+library(tree)
+library(dplyr)
+library(caret)
+library(gbm)
+library(randomForest)
+library(GGally)
+library(pls)
+library(splines)
+library(boot)
 ```
 
-**Introduction:** 
+```{r}
+original_df = read.csv("training_data.csv")
+```
+
+```{r}
+training_df = original_df %>% 
+  mutate(price = log_price)  %>%
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, neighbourhood, X, log_price)) %>%
+  mutate(first_review = as.Date(original_df$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(original_df$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(original_df$host_since, format = "%Y-%m-%d")) %>%
+  mutate(host_response_rate = as.numeric(sub("%", "", original_df$host_response_rate))/100)
+
+training_df = training_df %>%
+  mutate(first_review_year = as.Date(cut(training_df$first_review, "year"))) %>%
+  mutate(last_review_year = as.Date(cut(training_df$last_review, "year"))) %>%
+  mutate(host_since_year = as.Date(cut(training_df$host_since, "year"))) %>%
+  mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
+  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
+
+training_df = training_df %>%
+  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
+  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
+  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
+
+training_df = training_df %>%
+  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
+  mutate(cleaning_fee = as.factor(cleaning_fee))
+
+training_df = training_df[complete.cases(training_df), ]
+
+training_df <- training_df %>%
+  filter(property_type != "Chalet") %>%
+  filter(property_type != "Island") %>%
+  filter(property_type != "Tent") %>%
+  filter(property_type != "Treehouse") %>%
+  filter(property_type != "Yurt") %>%
+  filter(property_type != "Hut") %>%
+  filter(property_type != "Train") %>%
+  filter(property_type != "Vacation home") %>%
+  select(-c(first_review, last_review, host_since))
+```
+
+**Introduction:**     
 
 
 
 
 
 **The Data:**
-As a company, AirBnB is very open and transparent with the data they collect about their rental properties.  They provide data about rental spaces in their system for cities and countries all over the world.  Because of this, we were able to find a large dataset on Kaggle with AirBnB listings in major US cities including New York City, Los Angeles, San Francisco and others.  The dataset available on Kaggle has over 78,000 entries and used as a competition a few years ago.  Because we aren't able to submit our results, we trimmed our training data to about 18,000 entries and our test data to about 3,000 entries.  This allowed for easier access and faster processing while maintaining a large dataset.  The data includes 29 variables including nightly rental price, property details, location, host details and more.    
+As a company, AirBnB is very open and transparent with the data they collect about their rental properties.  They provide data about rental spaces in their system for cities and countries all over the world.  Because of this, we were able to find a large dataset on Kaggle with AirBnB listings in major US cities including New York City, Los Angeles, San Francisco and others.  The dataset available on Kaggle has over 74,000 entries and was used as a competition a few years ago.  For the sake of time and processing, we trimmed our training data to about 17,500 entries and our test data to about 5,000 entries.  We did this by taking a random sample of the provided training data.  This allowed for easier access and faster processing while maintaining a large amount of data and individual AirBnB listings.  
 
+The original dataset contained 30 variables about each listing.  Due to high correlations and lack of relevancy, our final dataset consisted of twenty-two variables.  Those twenty-two variables can be split into four categories: property, location, host and host reviews.  
 
+Property includes:
+
+  - price: listing price        
+
+```{r fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
+ggplot(data = training_df) +
+  geom_histogram(aes(exp(price)), bins = 50) +
+  ggtitle("Listing Price ($)") + 
+  geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2) + xlab("price")
+
+ggplot(data = training_df) +
+  geom_histogram(aes(price), bins = 25) +
+  ggtitle("Log of Listing Price ($)") + 
+  geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2) + xlab("log(price)")
+```   
+
+  Note: Because the original price data is very heavily skewed, we needed to log transform the prices.  This gives a normal distribution of prices allowing for better prediction capabilities and interpretability.
+
+  - property_type: defines the type of property listed
+      - There are 21 different types including anything from apartments, houses, and condos to boats, cabins, hostels and even castles
+  
+  - room_type
+  
+  - accommodates
+  
+  - bedrooms
+  
+  - beds
+  
+  - bed_type 
+  
+  - bathrooms
+  
+Location includes:
+
+  - city
+  - latitude 
+  - longitude
+  
+Host includes: 
+
+  - cancellation_policy
+  
+  - cleaning_fee
+  
+  - host_has_profile_pic
+  
+  - host_identify_verified
+  
+  - instant_bookable
+  
+  - host_response_rate
+
+Host Reviews:
+
+  - number_of_reviews
+  
+  - review_scores_rating
+  
+  - first_review_year
+  
+  - last_review_year
+  
+  - host_since_year
 
 
 
@@ -42,6 +165,7 @@ As a company, AirBnB is very open and transparent with the data they collect abo
 
 
 \newpage
+
 **References:**
 
 

@@ -48,9 +48,6 @@ training_df = original_df %>%
   mutate(host_response_rate = as.numeric(sub("%", "", original_df$host_response_rate))/100)
 ```
 
-```{r}
-head(training_df)
-```
 
 ```{r}
 # update 3 date columns to track the start of the week instead of the individual date
