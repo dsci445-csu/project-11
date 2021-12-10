@@ -213,11 +213,9 @@ ggcorr(original_df)
 ## Models
 Do we want to split the training_data in half and make one half training and the other half available to use for CV testing and then the testing_data.csv is used for the final model predictions since it doesn't have a price column?
 ```{r}
-set.seed(11)
 trn = sample(seq_len(nrow(training_df)), 9000)
 training = training_df[trn, ]
 testing = training_df[-trn, ]
-str(testing)
 ```
 
 Baseline: Linear Regression

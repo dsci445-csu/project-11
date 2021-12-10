@@ -95,14 +95,33 @@ training_df <- training_df %>%
 - Consists of 30 variables
 - Variables are about the property, property location, the host and host reviews 
 - After cleaning and eliminating variables, our data consisted of 22 variables
+
 ```{r}
 str(training_df)
 ```
 
 
+```{r echo = FALSE}
+trn = sample(seq_len(nrow(training_df)), 9000)
+training = training_df[trn, ]
+testing = training_df[-trn, ]
+```
+
 
 # Baseline Regression
+```{r echo = TRUE}
+linear = lm(price ~ ., data = training)
+```
 
+```{r}
+linear_predict = predict(linear, newdata = testing, type = "response")
+MSE_testing = (testing$price - linear_predict)^2
+```
+
+
+```{r echo = FALSE}
+print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 3)))
+```
 
 
 # Regression Splines/Generalized Additive Models
@@ -154,6 +173,7 @@ ggplot() +
 ```{r, include = FALSE}
 
 ```
+
 
 
 
