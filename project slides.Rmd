@@ -9,7 +9,7 @@ output: beamer_presentation #:
 
 ```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
-knitr::opts_chunk$set(echo = FALSE)
+# knitr::opts_chunk$set(echo = FALSE)
 # knitr::opts_chunk$set(fig.width=5, fig.height=3) 
 knitr::opts_chunk$set(warning = FALSE)
 library(ggplot2)
@@ -31,7 +31,7 @@ library(splines)
 library(boot)
 ```
 
-```{r}
+```{r echo = FALSE}
 original_df = read.csv("training_data.csv")
 
 training_df = original_df %>% 
@@ -113,7 +113,7 @@ testing = training_df[-trn, ]
 linear = lm(price ~ ., data = training)
 ```
 
-```{r}
+```{r echo = FALSE}
 linear_predict = predict(linear, newdata = testing, type = "response")
 MSE_testing = (testing$price - linear_predict)^2
 ```
@@ -174,6 +174,65 @@ ggplot() +
 
 ```
 
+
+# Regression Trees
+```{r echo = FALSE, fig.height=7, fig.width=5} 
+# fit regression tree
+initial_tree = tree(price ~ ., data = training)
+summary(initial_tree)
+
+initial_predict = predict(initial_tree, newdata = testing)
+tree_MSE = round(mean((testing$price - initial_predict)^2), 4)
+print(paste("Test MSE of Initial Tree: ", tree_MSE))
+```
+
+# Regression Trees
+```{r echo = FALSE}
+# cross validation
+initial_cv = cv.tree(initial_tree)
+ggplot() +
+  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
+```
+
+# Regression Trees
+
+```{r echo = FALSE, fig.show='hold', fig.height = 7}
+plot(initial_tree)
+text(initial_tree, cex = 1, digits = 4, pretty = 0)
+```
+
+# Bagging
+```{r echo = TRUE}
+bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+bag_predict = predict(bag_fit, testing, type = "response")
+bag_MSE = round(mean((testing$price - bag_predict)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSE))
+```
+
+# Bagging
+```{r, fig.show='hold', fig.height = 7, out.width="50%"}
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+
+```
+
+# Random Forests
+```{r}
+
+
+
+```
 
 
 
