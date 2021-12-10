@@ -151,7 +151,7 @@ cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
 degfree <- c(2, 3, 4, 5)
 cv <- c(cvs0, cvs, cvs2, cvs3)
 df_accomodates <- data.frame(degfree, cv)
-df_accomodates
+
 
 #spline on review_scores_rating
 fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training)
@@ -166,7 +166,7 @@ cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
 degfree <- c(3, 4, 5)
 cv <- c(cvs, cvs2, cvs3)
 df_reviews <- data.frame(degfree, cv)
-df_reviews
+
 
 #spline on bathrooms
 fit <- glm(price ~ bs(bathrooms, df = 3), data = training)
@@ -181,7 +181,7 @@ cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
 degfree <- c(3, 4, 5)
 cv <- c(cvs, cvs2, cvs3)
 df_bathrooms <- data.frame(degfree, cv)
-df_bathrooms
+
 
 #spline on bedrooms
 fit <- glm(price ~ bs(bedrooms, df = 3), data = training)
@@ -193,7 +193,6 @@ cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
 degfree <- c(3, 4)
 cv <- c(cvs, cvs2)
 df_bedrooms <- data.frame(degfree, cv)
-df_bedrooms
 
 ```
 
@@ -302,16 +301,7 @@ print(paste("Test MSE of Initial Tree: ", tree_MSE))
 ```
 
 # Regression Trees
-```{r echo = FALSE}
-# cross validation
-initial_cv = cv.tree(initial_tree)
-ggplot() +
-  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
-  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
-  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
-```
 
-# Regression Trees
 ```{r echo = FALSE, fig.show='hold', fig.height = 7}
 plot(initial_tree)
 text(initial_tree, cex = 1, digits = 4, pretty = 0)
@@ -328,18 +318,18 @@ print(paste("Test MSE of Bagging: ", bag_MSE))
 
 # Bagging
 
-```{r, echo = FALSE, fig.show='hold', fig.height = 7, out.width="50%"}
+```{r, echo = FALSE, fig.show='hold', fig.height = 7}
 data.frame(bag_fit$importance) %>%
   mutate(variable = rownames(bag_fit$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
   ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
   geom_point(aes(X.IncMSE, variable))  
 
-data.frame(bag_fit$importance) %>%
-  mutate(variable = rownames(bag_fit$importance)) %>%
-  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
-  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
-  geom_point(aes(IncNodePurity, variable))  
+# data.frame(bag_fit$importance) %>%
+#   mutate(variable = rownames(bag_fit$importance)) %>%
+#   mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+#   ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+#   geom_point(aes(IncNodePurity, variable))  
 
 ```
 
@@ -357,18 +347,18 @@ print(paste("Test MSE of Random Forest: ", rf_MSE))
 
 # Random Forests
 
-```{r, echo = FALSE, fig.show='hold', fig.height = 7, out.width="50%"}
+```{r, echo = FALSE, fig.show='hold', fig.height = 7}
 data.frame(rf_fit$importance) %>%
   mutate(variable = rownames(rf_fit$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
   ggplot() + ggtitle("% Decreasing MSE of Random Forest") + xlab("% Decreasing MSE") + 
   geom_point(aes(X.IncMSE, variable))  
 
-data.frame(rf_fit$importance) %>%
-  mutate(variable = rownames(rf_fit$importance)) %>%
-  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
-  ggplot() + ggtitle("Node Purity of Random Forest") + xlab("Node Purity") + 
-  geom_point(aes(IncNodePurity, variable))  
+# data.frame(rf_fit$importance) %>%
+#   mutate(variable = rownames(rf_fit$importance)) %>%
+#   mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+#   ggplot() + ggtitle("Node Purity of Random Forest") + xlab("Node Purity") + 
+#   geom_point(aes(IncNodePurity, variable))  
 
 ```
 
@@ -397,11 +387,10 @@ data.frame(x = lambdas, y = trainErrors) %>%
 boosted = gbm(price ~ ., data = training, n.trees = 2500, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
 ```
 
-```{r echo = FALSE,  fig.show='hold', fig.height = 7}
+```{r echo = FALSE,  fig.show='hold', fig.height = 7, message=FALSE}
 boosted_pred = predict(boosted, testing)
 boosted_MSE = round(mean((testing$price - boosted_pred)^2), 4)
 print(paste("Testing MSE for Boosted Model:", boosted_MSE))
-print(paste("Best Variables: property_type, room_type, bathrooms"))
 summary(boosted)
 ```
 
