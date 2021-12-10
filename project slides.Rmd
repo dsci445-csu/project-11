@@ -7,10 +7,11 @@ output: beamer_presentation #:
     #colortheme: "orchid"
 ---
 
-```{r setup, include=FALSE}
-# knitr::opts_chunk$set(echo = FALSE)
+```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
-knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(echo = FALSE)
+# knitr::opts_chunk$set(fig.width=5, fig.height=3) 
+knitr::opts_chunk$set(warning = FALSE)
 library(ggplot2)
 library(tidyverse)
 library(tidyr)
@@ -28,6 +29,50 @@ library(GGally)
 library(pls)
 library(splines)
 library(boot)
+```
+
+```{r}
+original_df = read.csv("training_data.csv")
+
+training_df = original_df %>% 
+  mutate(price = log_price)  %>%
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, neighbourhood, X, log_price)) %>%
+  mutate(first_review = as.Date(original_df$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(original_df$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(original_df$host_since, format = "%Y-%m-%d")) %>%
+  mutate(host_response_rate = as.numeric(sub("%", "", original_df$host_response_rate))/100)
+
+training_df = training_df %>%
+  mutate(first_review_year = as.Date(cut(training_df$first_review, "year"))) %>%
+  mutate(last_review_year = as.Date(cut(training_df$last_review, "year"))) %>%
+  mutate(host_since_year = as.Date(cut(training_df$host_since, "year"))) %>%
+  mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
+  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
+
+training_df = training_df %>%
+  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
+  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
+  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
+
+training_df = training_df %>%
+  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
+  mutate(cleaning_fee = as.factor(cleaning_fee))
+
+training_df = training_df[complete.cases(training_df), ]
+
+training_df <- training_df %>%
+  filter(property_type != "Chalet") %>%
+  filter(property_type != "Island") %>%
+  filter(property_type != "Tent") %>%
+  filter(property_type != "Treehouse") %>%
+  filter(property_type != "Yurt") %>%
+  filter(property_type != "Hut") %>%
+  filter(property_type != "Train") %>%
+  filter(property_type != "Vacation home") %>%
+  select(-c(first_review, last_review, host_since))
 ```
 
 # Motivation
@@ -50,7 +95,10 @@ library(boot)
 - Consists of 30 variables
 - Variables are about the property, property location, the host and host reviews 
 - After cleaning and eliminating variables, our data consisted of 22 variables
-- 
+```{r}
+str(training_df)
+```
+
 
 
 # Questions?

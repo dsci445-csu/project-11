@@ -476,39 +476,16 @@ ggplot() +
 data.frame(bag_fit$importance) %>%
   mutate(variable = rownames(bag_fit$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
-  ggplot() + ggtitle("% Decreasing MSE of Bagging") + xlab("% Decreasing MSE") + 
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
   geom_point(aes(X.IncMSE, variable))  
 
 data.frame(bag_fit$importance) %>%
   mutate(variable = rownames(bag_fit$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
-  ggplot() + ggtitle("Node Purity of Bagging") + xlab("Node Purity") + 
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
   geom_point(aes(IncNodePurity, variable))  
 
 ```
-
-```{r}
-# k = 5
-# folds = sample(seq_len(k), nrow(training_df) , replace = TRUE)
-# results_kfold_bagging = c()
-# for(i in seq_len(k)){
-#   trn <- folds != i
-#   
-#   #fit model
-#   l <- randomForest(price ~ ., data = training_df[trn, ], mtry = ncol(training_df[trn, ]) - 1, importance = TRUE)
-#   
-#   # predict on validation set
-#   pred = predict(l, training_df[!trn, ])
-#   
-#   # estimate test MSE
-#   true_price = training_df[!trn, ]$price
-#   
-#   results_kfold_bagging[i] = (true_price - pred)^2
-# }
-# 
-# print(paste("k-fold Cross Validation of Bagging: ", round(mean(results_kfold_bagging), 2)))
-```
-
 
 
 Random Forests:
@@ -582,16 +559,86 @@ print(paste("Testing MSE for Boosted Model:", boosted_MSE))
 method = c("Linear Regression", "PCR", "PLS", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
 MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
 
-finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,3))
+finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
 finalMSE
 
 ```
 
 
 ## Final Model
+Load in testing_data.csv
+```{r}
+final_testing_data = read.csv("testing_data.csv")
+testing_df = final_testing_data %>% 
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, neighbourhood, X)) %>%
+  mutate(first_review = as.Date(final_testing_data$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(final_testing_data$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(final_testing_data$host_since, format = "%Y-%m-%d")) %>%
+  mutate(host_response_rate = as.numeric(sub("%", "", final_testing_data$host_response_rate))/100)
+
+testing_df = testing_df %>%
+  mutate(first_review_year = as.Date(cut(testing_df$first_review, "year"))) %>%
+  mutate(last_review_year = as.Date(cut(testing_df$last_review, "year"))) %>%
+  mutate(host_since_year = as.Date(cut(testing_df$host_since, "year"))) %>%
+  mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
+  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
+
+testing_df = testing_df %>%
+  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
+  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
+  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
+
+testing_df = testing_df %>%
+  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
+  mutate(cleaning_fee = as.factor(cleaning_fee)) %>%
+  select(-c(first_review, last_review, host_since)) %>%
+  mutate(price = 0) 
+
+testing_df = testing_df %>%
+  filter(property_type != "Chalet") %>%
+  filter(property_type != "Train") %>%
+  filter(property_type != "Vacation home") %>%
+  filter(property_type != "Earth House")
+
+testing_df = testing_df[complete.cases(testing_df), ]
 
 
+nrow(testing_df)
+head(testing_df)
+```
 
+
+```{r}
+str(training_df)
+str(testing_df)
+
+training_df %>%
+  group_by(property_type) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  kable()
+
+testing_df %>%
+  group_by(property_type) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  kable()
+
+```
+
+```{r}
+levels(testing_df$property_type) <- levels(training_df$property_type)
+final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, n = 200)
+final_predict = predict(final_fit, testing_df, type = "response")
+
+```
+
+```{r}
+final_predict
+```
 
 
 
