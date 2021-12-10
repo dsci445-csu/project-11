@@ -92,13 +92,15 @@ training_df <- training_df %>%
 
 # Data
 
-- Consists of 30 variables
+- Original data consists of 30 variables
 - Variables are about the property, property location, the host and host reviews 
 - After cleaning and eliminating variables, our data consisted of 22 variables
-
-```{r, fig.show='hold'}
-str(training_df)
-```
+- Property:
+  - property_type, room_type, accommodates, bedrooms, beds, bed_type, bathrooms
+- Location: 
+  - latitude, longitude, city
+- Host:
+  - cancellation_policy, cleaning_fee, host_has_profile_pic, host_identify_verified, etc
 
 
 ```{r echo = FALSE}
@@ -212,6 +214,8 @@ print(paste("Test MSE of GAM: ", gam_MSE))
 - Received errors when using degrees of freedom larger than 6 or so
 - Want to look into these errors and figure out if I could try larger degrees of freedom in my splines to get a better model
 
+
+
 # PCR and PLS
 
 - 10 Fold Cross-Validation was performed for number of components ranging from 1 to 20.
@@ -316,7 +320,7 @@ text(initial_tree, cex = 1, digits = 4, pretty = 0)
 # Bagging
 
 ```{r echo = TRUE}
-bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE, ntrees = 2500)
 bag_predict = predict(bag_fit, testing, type = "response")
 bag_MSE = round(mean((testing$price - bag_predict)^2), 4)
 print(paste("Test MSE of Bagging: ", bag_MSE))
@@ -342,7 +346,7 @@ data.frame(bag_fit$importance) %>%
 # Random Forests
 
 ```{r echo = TRUE}
-rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
+rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE, ntrees = 2500)
 ```
 
 ```{r echo = FALSE}
@@ -371,13 +375,13 @@ data.frame(rf_fit$importance) %>%
 # Boosting
 
 ```{r echo = FALSE, fig.show='hold', fig.height = 7}
-lambdas = seq(0, 0.5, length.out = 100)
+lambdas = seq(0, 0.5, length.out = 75)
 trainErrors = rep(NA, length(lambdas))
 testErrors = rep(NA, length(lambdas))
 for(i in 1:length(lambdas)){
-  boost = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[i], distribution = "gaussian")
-  trainPred = predict(boost, training, n.trees = 1000)
-  testPred = predict(boost, testing, n.trees = 1000)
+  boost = gbm(price ~ ., data = training, n.trees = 500, shrinkage = lambdas[i], distribution = "gaussian")
+  trainPred = predict(boost, training, n.trees = 500)
+  testPred = predict(boost, testing, n.trees = 500)
   trainErrors[i] = mean((training$price - trainPred)^2)
   testErrors[i] = mean((testing$price - testPred)^2)
 }
@@ -389,80 +393,34 @@ data.frame(x = lambdas, y = trainErrors) %>%
 
 # Boosting 
 
-```{r echo = FALSE}
-boosted = gbm(price ~ ., data = training, n.trees = 5000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
-summary(boosted)
+```{r echo = FALSE, warning = FALSE}
+boosted = gbm(price ~ ., data = training, n.trees = 2500, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
+```
 
+```{r echo = FALSE,  fig.show='hold', fig.height = 7}
 boosted_pred = predict(boosted, testing)
 boosted_MSE = round(mean((testing$price - boosted_pred)^2), 4)
 print(paste("Testing MSE for Boosted Model:", boosted_MSE))
+print(paste("Best Variables: property_type, room_type, bathrooms"))
+summary(boosted)
 ```
 
 # MSE Table
 ```{r echo = FALSE}
 method = c("Linear Regression", "PCR", "PLS", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
-MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
+# MSEnumbers = c(MSE_testing, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
 
-finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
-finalMSE
-```
-
-# Final Model
-```{r echo = FALSE}
-final_testing_data = read.csv("testing_data.csv")
-testing_df = final_testing_data %>% 
-  select(-c(id, amenities, description, thumbnail_url, zipcode, name, neighbourhood, X)) %>%
-  mutate(first_review = as.Date(final_testing_data$first_review, format = "%Y-%m-%d")) %>%
-  mutate(last_review = as.Date(final_testing_data$last_review, format = "%Y-%m-%d")) %>%
-  mutate(host_since = as.Date(final_testing_data$host_since, format = "%Y-%m-%d")) %>%
-  mutate(host_response_rate = as.numeric(sub("%", "", final_testing_data$host_response_rate))/100)
-
-testing_df = testing_df %>%
-  mutate(first_review_year = as.Date(cut(testing_df$first_review, "year"))) %>%
-  mutate(last_review_year = as.Date(cut(testing_df$last_review, "year"))) %>%
-  mutate(host_since_year = as.Date(cut(testing_df$host_since, "year"))) %>%
-  mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
-  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
-
-testing_df = testing_df %>%
-  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
-  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
-  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
-
-testing_df = testing_df %>%
-  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
-  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
-  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
-  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
-  mutate(cleaning_fee = as.factor(cleaning_fee)) %>%
-  select(-c(first_review, last_review, host_since)) %>%
-  mutate(price = 0) 
-
-testing_df = testing_df %>%
-  filter(property_type != "Chalet") %>%
-  filter(property_type != "Train") %>%
-  filter(property_type != "Vacation home") %>%
-  filter(property_type != "Earth House")
-
-testing_df = testing_df[complete.cases(testing_df), ]
-
-```
-
-```{r echo = FALSE}
-levels(testing_df$property_type) <- levels(training_df$property_type)
-final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntrees = 200)
-final_predict = predict(final_fit, testing_df, type = "response")
-```
-
-```{r}
-head(final_predict)
-length(final_predict)
-nrow(testing_df)
-testing_df$price = final_predict
-
+# finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
+# finalMSE
 ```
 
 
+# Going Forward
+
+- Our data has data from multiple cities across the country
+- Can we apply this to a certain city and see similar results?
+- Is this accurate enough to help AirBnB hosts in selected cities?
+  - Using current data, can this model help hosts correctly adjust their rates?
 
 # Questions?
 
