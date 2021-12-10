@@ -637,7 +637,6 @@ head(final_predict)
 length(final_predict)
 nrow(testing_df)
 testing_df$price = final_predict
-
 ```
 
 
