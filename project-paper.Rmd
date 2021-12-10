@@ -180,41 +180,141 @@ ggplot(data = latlong) +
   
 Host includes: 
 
-  - cancellation_policy
+  - cancellation_policy: strictness of cancellation policy set by the host
+      - Levels include strict, moderate, flexible, super_strict_30	and super_strict_60
   
-  - cleaning_fee
+  - cleaning_fee: TRUE/FALSE determines if host charges a cleaning fee
   
-  - host_has_profile_pic
+  - host_has_profile_pic: TRUE/FALSE determines if the host has uploaded a picture to their profile
   
-  - host_identify_verified
+  - host_identify_verified: TRUE/FALSE determines if the host's identity has been verified by AirBnB
   
-  - instant_bookable
+  - instant_bookable: TRUE/FALSE determines if the property can be booked in short notice
   
-  - host_response_rate
+  - host_response_rate: how often does the host reply to potential clients?
+
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold', out.width="33%"}
+training_df %>%
+  group_by(cancellation_policy) %>%
+  ggplot() + geom_bar(aes(cancellation_policy)) + 
+  ggtitle("Cancellation Policy")
+
+training_df %>%
+  group_by(cleaning_fee) %>%
+  ggplot() + geom_bar(aes(cleaning_fee)) + 
+  ggtitle("Cleaning Fee?")
+
+training_df %>%
+  group_by(host_has_profile_pic) %>%
+  ggplot() + geom_bar(aes(host_has_profile_pic)) + 
+  ggtitle("Profile Pic?")
+```
+
+
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold', out.width="33%"}
+training_df %>%
+  group_by(host_identity_verified) %>%
+  ggplot() + geom_bar(aes(host_identity_verified)) + 
+  ggtitle("Identify Verified?")
+
+training_df %>%
+  group_by(instant_bookable) %>%
+  ggplot() + geom_bar(aes(instant_bookable)) + 
+  ggtitle("Instant Bookable?")
+```
+
 
 Host Reviews:
 
-  - number_of_reviews
+  - number_of_reviews: Number of reviews the host has received
   
-  - review_scores_rating
+  - review_scores_rating: average review rating for the host and property
   
-  - first_review_year
+  - first_review_year: year of the first review
   
-  - last_review_year
+  - last_review_year: year of most recent review
   
-  - host_since_year
+  - host_since_year: year the property was first listed on AirBnB
+  
+Conclude predictors
+
+
+**Models**   
+There are have a lot of machine learning methods discussed this past semester and we wanted to incorporate some of our favorites into our research.  Thus, we have included linear regression, splines, general additive models, PCR, PLS, trees, bagging, random forests and bagging.   
+```{r}
+trn = sample(seq_len(nrow(training_df)), 9000)
+training = training_df[trn, ]
+testing = training_df[-trn, ]
+```
+In order to both train and test using the training data file, we needed to split the 17,500 total observations into roughly a 50/50 split.  To do this, we took a random sample of 9000 observations and made that the training set.  From now on, this random sample with be referred to as the training set. The remaining 7500 observations became our testing set for determining the mean squared error of each model.  This is will be referred to as the testing set.  
+
+**Regression**        
+To begin, we started with a simple multiple linear regression model.  We wanted to give ourselves a baseline mean squared error value and because linear regression is the easiest to apply and interpret, we determined this was the best place to start.  The model was fit using all twenty-two variables and the training set.  
+
+```{r out.width="33%", echo=FALSE}
+linear = lm(price ~ ., data = training)
+linear_predict = predict(linear, newdata = testing, type = "response")
+MSE_testing = (testing$price - linear_predict)^2
+summaryLinear = summary(linear)
+print(paste("R^2:", round(summaryLinear$r.squared, 3), ", Adjusted R^2: ", round(summaryLinear$adj.r.squared, 3)))
+print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 4)))
+```
+
+```{r warning = FALSE}
+n = 107
+results_LOOCV = c()
+for(i in seq_len(n)){
+  trn <- seq_len(n) != i
+  
+  #fit model
+  l = lm(price ~ ., data = training_df[trn, ])
+  
+  # predict on validation set
+  pred = predict(l, training_df[!trn, ])
+  
+  # estimate test MSE
+  true_price = training_df[!trn, ]$price
+  
+  results_LOOCV[i] = (true_price - pred)^2
+}
+
+print(paste("Leave One Out Cross Validation: ", round(mean(results_LOOCV), 4)))
+```
+
+As shown in the results above, our linear regression model was able to set a good baseline for future methods with a mean squared error of 0.1652.  With our linear regression model, we also applied some cross validation.  For Leave One Out Cross Validation, we achieved a mean squared error 0.1829.   
+
+
+**Regression Splines/Generalized Additive Models:**           
 
 
 
-**Content:**
+**PCR and PLS**       
+
+
+
+**Trees**       
+
+
+
+**Bagging**
+
+
+
+**Random Forests**
+
+
+
+**Boosting**
 
 
 
 
+**Results**            
 
-**Results:**
 
 
+
+**City Prediction**
 
 
 
