@@ -96,7 +96,7 @@ training_df <- training_df %>%
 - Variables are about the property, property location, the host and host reviews 
 - After cleaning and eliminating variables, our data consisted of 22 variables
 
-```{r}
+```{r, fig.show='hold'}
 str(training_df)
 ```
 
@@ -107,8 +107,8 @@ training = training_df[trn, ]
 testing = training_df[-trn, ]
 ```
 
-
 # Baseline Regression
+
 ```{r echo = TRUE}
 linear = lm(price ~ ., data = training)
 ```
@@ -116,13 +116,8 @@ linear = lm(price ~ ., data = training)
 ```{r echo = FALSE}
 linear_predict = predict(linear, newdata = testing, type = "response")
 MSE_testing = (testing$price - linear_predict)^2
-```
-
-
-```{r echo = FALSE}
 print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 3)))
 ```
-
 
 # Regression Splines/Generalized Additive Models
 
@@ -165,7 +160,6 @@ ggplot() +
   geom_point(aes(M, mse))
 
 ```
-
 
 
 # PLS Predictions
@@ -288,8 +282,61 @@ boosted_MSE = round(mean((testing$price - boosted_pred)^2), 4)
 print(paste("Testing MSE for Boosted Model:", boosted_MSE))
 ```
 
-# 
+# MSE Table
+```{r echo = FALSE}
+method = c("Linear Regression", "PCR", "PLS", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
+MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
 
+finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
+finalMSE
+```
+
+# Final Model
+```{r echo = FALSE}
+final_testing_data = read.csv("testing_data.csv")
+testing_df = final_testing_data %>% 
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, neighbourhood, X)) %>%
+  mutate(first_review = as.Date(final_testing_data$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(final_testing_data$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(final_testing_data$host_since, format = "%Y-%m-%d")) %>%
+  mutate(host_response_rate = as.numeric(sub("%", "", final_testing_data$host_response_rate))/100)
+
+testing_df = testing_df %>%
+  mutate(first_review_year = as.Date(cut(testing_df$first_review, "year"))) %>%
+  mutate(last_review_year = as.Date(cut(testing_df$last_review, "year"))) %>%
+  mutate(host_since_year = as.Date(cut(testing_df$host_since, "year"))) %>%
+  mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
+  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
+
+testing_df = testing_df %>%
+  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
+  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
+  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
+
+testing_df = testing_df %>%
+  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
+  mutate(cleaning_fee = as.factor(cleaning_fee)) %>%
+  select(-c(first_review, last_review, host_since)) %>%
+  mutate(price = 0) 
+
+testing_df = testing_df %>%
+  filter(property_type != "Chalet") %>%
+  filter(property_type != "Train") %>%
+  filter(property_type != "Vacation home") %>%
+  filter(property_type != "Earth House")
+
+testing_df = testing_df[complete.cases(testing_df), ]
+
+```
+
+```{r}
+levels(testing_df$property_type) <- levels(training_df$property_type)
+final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, n = 200)
+final_predict = predict(final_fit, testing_df, type = "response")
+```
 
 # Questions?
 

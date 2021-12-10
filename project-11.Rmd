@@ -559,7 +559,6 @@ MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, 
 
 finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
 finalMSE
-
 ```
 
 
