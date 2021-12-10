@@ -85,7 +85,7 @@ training_df <- training_df %>%
 
 - In general, AirBnB data is very open and be easily accessed
 - The original dataset is from a past Kaggle competition 
-  - Contained over 74,000 individual listings
+  - Contained over 74,000 individual listings between 2011-2018
 - For sake of time and processing power, we took a random sample of 17,500 from those 74,000 listings
 - They also provided a testing file
 - Since the competition is over, we will compile our final predictions on that file using our best model 
