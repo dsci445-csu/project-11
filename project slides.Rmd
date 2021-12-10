@@ -123,7 +123,96 @@ print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 3)))
 
 # Regression Splines/Generalized Additive Models
 
+- 20 Fold Cross-Validation was performed for different degrees of freedom ranging usually between 3 and 6
+- Cross-Validation MSE used to pick degrees of freedom for splines
 
+# Splines
+
+- Splines fit to variables Accommodates, review_scores_rating, bathrooms, and bedrooms
+- Best performing spline based on Cross-Validation MSE was the spline on review_scores_rating with degrees of freedom = 4
+- Use these splines with their optimal degrees of freedom in my general additive model
+
+# Spline Degrees of Freedom
+
+```{r}
+#spline on accommodates
+fit0 <- glm(price ~ bs(accommodates, df = 2), data = training)
+cvs0 <- cv.glm(testing, fit0, K = 10)$delta[1]
+
+fit <- glm(price ~ bs(accommodates, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(accommodates, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(accommodates, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+  
+degfree <- c(2, 3, 4, 5)
+cv <- c(cvs0, cvs, cvs2, cvs3)
+df_accomodates <- data.frame(degfree, cv)
+df_accomodates
+
+#spline on review_scores_rating
+fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(review_scores_rating, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(review_scores_rating, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5)
+cv <- c(cvs, cvs2, cvs3)
+df_reviews <- data.frame(degfree, cv)
+df_reviews
+
+#spline on bathrooms
+fit <- glm(price ~ bs(bathrooms, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(bathrooms, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(bathrooms, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5)
+cv <- c(cvs, cvs2, cvs3)
+df_bathrooms <- data.frame(degfree, cv)
+df_bathrooms
+
+#spline on bedrooms
+fit <- glm(price ~ bs(bedrooms, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(bedrooms, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+degfree <- c(3, 4)
+cv <- c(cvs, cvs2)
+df_bedrooms <- data.frame(degfree, cv)
+df_bedrooms
+```
+# GAM Model
+
+- Performed the GAM on the training data set using all of the predictors plus splines on Accommodates, review_scores_rating, bathrooms, and bedrooms with their optimal degrees of freedom 
+- Not a great fitting model, $R^2 = 0.6388
+- Decent MSE when fit on the test data set
+
+```{r}
+gammod <- lm(price ~ . + bs(accommodates, df = 2) + bs(review_scores_rating, df = 4) + bs(bathrooms, df = 4) + bs(bedrooms, df = 3), data = training)
+
+gam_predict = predict(gammod, newdata = testing)
+gam_MSE = round(mean((testing$price - gam_predict)^2), 4)
+print(paste("Test MSE of GAM: ", gam_MSE))
+```
+
+# Future Modeling with Splines
+
+- Received errors when using degrees of freedom larger than 6 or so
+- Want to look into these errors and figure out if I could try larger degrees of freedom in my splines to get a better model.
 
 
 
