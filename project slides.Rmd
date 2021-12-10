@@ -132,8 +132,6 @@ print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 3)))
 - Best performing spline based on Cross-Validation MSE was the spline on review_scores_rating with degrees of freedom = 4
 - Use these splines with their optimal degrees of freedom in my general additive model
 
-# Spline Degrees of Freedom
-
 ```{r echo=FALSE}
 #spline on accommodates
 fit0 <- glm(price ~ bs(accommodates, df = 2), data = training)
