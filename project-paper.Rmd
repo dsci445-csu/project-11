@@ -74,33 +74,45 @@ training_df <- training_df %>%
   select(-c(first_review, last_review, host_since))
 ```
 
-**Introduction:**     
+# Introduction 
 
 
 
 
 
-**The Data:**
-As a company, AirBnB is very open and transparent with the data they collect about their rental properties.  They provide data about rental spaces in their system for cities and countries all over the world.  Because of this, we were able to find a large dataset on Kaggle with AirBnB listings in major US cities including New York City, Los Angeles, San Francisco and others.  The dataset available on Kaggle has over 74,000 entries and was used as a competition a few years ago.  For the sake of time and processing, we trimmed our training data to about 17,500 entries and our test data to about 5,000 entries.  We did this by taking a random sample of the provided training data.  This allowed for easier access and faster processing while maintaining a large amount of data and individual AirBnB listings.  
+# The Data     
+|   As a company, AirBnB is very open and transparent with the data they collect about their rental properties.  They provide data about rental spaces in their system for cities and countries all over the world.  Because of this, we were able to find a large dataset on Kaggle with AirBnB listings in major US cities including New York City, Los Angeles, San Francisco and others.  The dataset available on Kaggle has over 74,000 entries and was used as a competition a few years ago.  For the sake of time and processing, we trimmed our training data to about 17,500 entries and our test data to about 5,000 entries.  We did this by taking a random sample of the provided training data.  This allowed for easier access and faster processing while maintaining a large amount of data and individual AirBnB listings.  
 
-The original dataset contained 30 variables about each listing.  Due to high correlations and lack of relevancy, our final dataset consisted of twenty-two variables.  Those twenty-two variables can be split into four categories: property, location, host and host reviews.  
+|   The original dataset contained 30 variables about each listing.  Due to high correlations and lack of relevancy, our final dataset consisted of twenty-two variables.  Those twenty-two variables can be split into four categories: property, location, host and host reviews.  
 
 Property includes:
 
   - price: listing price    
-      - Note: Because the original price data is very heavily skewed, we needed to log transform the prices.  This gives a normal distribution of prices allowing for better prediction capabilities and interpretability.
+      - Because the original price data is very heavily skewed, we needed to log transform the prices.  As shown in the histogram, we have a very heavy right tail because there are a  some listings with very high prices compared to the median price of $110 (blue line).  This non-normal shape and distribution is clearly evident in the Q-Q plot.  The observations clearly curve away from the line depicting how skewed the distribution is.  
 
 ```{r fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
 ggplot(data = training_df) +
   geom_histogram(aes(exp(price)), bins = 50) +
   ggtitle("Listing Price ($)") + 
-  geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2) + xlab("price")
+  geom_vline(xintercept = median(exp(training_df$price)), color = "blue", lty = 2) + 
+  xlab("price")
 
+ggplot(data = training_df, aes(sample = exp(price))) +
+  stat_qq() + stat_qq_line() + ggtitle("Q-Q Plot of Original Price") 
+
+```
+
+```{r fig.width=5, fig.height=3,  fig.show='hold', out.width="50%"}
 ggplot(data = training_df) +
   geom_histogram(aes(price), bins = 25) +
   ggtitle("Log of Listing Price ($)") + 
   geom_vline(xintercept = median(training_df$price), color = "blue", lty = 2) + xlab("log(price)")
+
+ggplot(data = training_df, aes(sample = price)) +
+  stat_qq() + stat_qq_line() + ggtitle("Q-Q Plot of Log Price") 
 ```   
+
+|   By applying a log transformation, we now have a more normal shaped distribution.  Our Q-Q plot shows some evidence of a right tail but this can be expected since the original distribution is very right tailed.  
 
   - property_type: defines the type of property listed
       - There are 21 different types ranging from apartments, houses, and condos to boats, cabins, hostels and even castles
@@ -236,20 +248,20 @@ Host Reviews:
   
   - host_since_year: year the property was first listed on AirBnB
   
-Conclude predictors
+As a group, we felt these twenty-two predictors were all relevant and important in helping predict price.
 
 
-**Models**   
-There are have a lot of machine learning methods discussed this past semester and we wanted to incorporate some of our favorites into our research.  Thus, we have included linear regression, splines, general additive models, PCR, PLS, trees, bagging, random forests and bagging.   
+# Models   
+|   There are have a lot of machine learning methods discussed this past semester and we wanted to incorporate some of our favorites into our research.  Thus, we have included linear regression, splines, general additive models, PCR, PLS, trees, bagging, random forests and bagging.   
 ```{r}
 trn = sample(seq_len(nrow(training_df)), 9000)
 training = training_df[trn, ]
 testing = training_df[-trn, ]
 ```
-In order to both train and test using the training data file, we needed to split the 17,500 total observations into roughly a 50/50 split.  To do this, we took a random sample of 9000 observations and made that the training set.  From now on, this random sample with be referred to as the training set. The remaining 7500 observations became our testing set for determining the mean squared error of each model.  This is will be referred to as the testing set.  
+|   In order to both train and test using the training data file, we needed to split the 17,500 total observations into roughly a 50/50 split.  To do this, we took a random sample of 9000 observations and made that the training set.  From now on, this random sample with be referred to as the training set. The remaining 7500 observations became our testing set for determining the the performance of each method.  
 
-**Regression**        
-To begin, we started with a simple multiple linear regression model.  We wanted to give ourselves a baseline mean squared error value and because linear regression is the easiest to apply and interpret, we determined this was the best place to start.  The model was fit using all twenty-two variables and the training set.  
+# Regression      
+|   To begin, we started with a simple multiple linear regression model.  We wanted to give ourselves a baseline mean squared error value and because linear regression is the easiest to apply and interpret, we determined this was the best place to start.  The model was fit using all twenty-two variables and the training set.  
 
 ```{r out.width="33%", echo=FALSE}
 linear = lm(price ~ ., data = training)
@@ -277,50 +289,244 @@ for(i in seq_len(n)){
   
   results_LOOCV[i] = (true_price - pred)^2
 }
-
 print(paste("Leave One Out Cross Validation: ", round(mean(results_LOOCV), 4)))
+
+k = 10
+folds = sample(seq_len(k), nrow(training_df) , replace = TRUE)
+results_kfold = c()
+for(i in seq_len(k)){
+  trn <- folds != i
+  
+  #fit model
+  l = lm(price ~ ., data = training_df[trn, ])
+  
+  # predict on validation set
+  pred = predict(l, training_df[!trn, ])
+  
+  # estimate test MSE
+  true_price = training_df[!trn, ]$price
+  
+  results_kfold[i] = (true_price - pred)^2
+}
+
+linearReg_kfold_MSE = round(mean(results_kfold), 4)
+print(paste("k-fold Cross Validation: ", linearReg_kfold_MSE))
 ```
 
-As shown in the results above, our linear regression model was able to set a good baseline for future methods with a mean squared error of 0.1652.  With our linear regression model, we also applied some cross validation.  For Leave One Out Cross Validation, we achieved a mean squared error 0.1829.   
+|   As shown in the results above, our linear regression model was able to set a good baseline for future methods with a mean squared error of 0.1652.  With our linear regression model, we also applied some cross validation.  For Leave One Out Cross Validation, we achieved a mean squared error 0.1829 and applying k-fold cross validation with k = 10, we achieved a mean square error of 0.3063.  Clearly, Leave One Out Cross Validation performed better than the k-fold cross validation.  
 
 
-**Regression Splines/Generalized Additive Models:**           
-
-
-
-**PCR and PLS**       
+# Regression Splines/Generalized Additive Models           
 
 
 
-**Trees**       
+# PCR and PLS      
 
 
 
-**Bagging**
+# Trees
+|   The next method we used was decision trees.  Fitting the fit using all predictors, we obtained a tree where five variables were actually used in the tree construction.  Those variables were room_type, longitude, bathrooms, city and bedrooms.  The tree has eight terminal nodes and obtained a test mean squared error of 0.1926.  The cv.tree function was used to perform cross-validation to determine the optimal level of tree complexity.  The optimal level was 8 and then using the prune.tree function, we attempted to prune our tree to the chosen complexity but found that our original tree was the same as the pruned tree.  The table below shows the log prices converted to dollars to help explain the terminal node values.  Node 1 is the farthest node on the left.  
+
+```{r message=FALSE, fig.width=5, fig.height=3,  fig.show='hold'} 
+# fit regression tree
+initial_tree = tree(price ~ ., data = training)
+initial_predict = predict(initial_tree, newdata = testing)
+tree_MSE = round(mean((testing$price - initial_predict)^2), 4)
+print(paste("Test MSE of Tree: ", tree_MSE))
+```
+```{r message=FALSE, fig.width=7, fig.height=4, fig.show='hold'} 
+plot(initial_tree)
+text(initial_tree, cex = 0.55, digits = 4, pretty = 0)
+```
+
+```{r message=FALSE, fig.width=5, fig.height=3,  fig.show='hold'} 
+node = c(1,2,3,4,5,6,7,8)
+log_price = c(4.65, 4.259, 3.753, 4.807, 5.197, 4.905, 5.379, 5.843)
+price = round(exp(log_price),2)
+tree_explained = data.frame(TerminalNode = node, Log_Price = log_price, Price = price)
+kable(tree_explained)
+```
 
 
 
-**Random Forests**
+# Bagging
+|   
+
+
+```{r}
+bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+bag_predict = predict(bag_fit, testing, type = "response")
+bag_MSE = round(mean((testing$price - bag_predict)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSE))
+```
+
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold'}
+ggplot() + 
+  geom_point(aes(x = bag_predict, y = testing$price), alpha = 0.25) + 
+  geom_abline(slope = 1, intercept = 0) + 
+  ggtitle("Performance of Bagging on Test Set")
+```
 
 
 
-**Boosting**
 
 
 
+```{r echo = FALSE, message=FALSE, fig.show='hold', out.width="50%"}
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
 
-**Results**            
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+
+```
 
 
 
+# Random Forests
 
-**City Prediction**
+
+```{r}
+rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
+rf_predict = predict(rf_fit, testing, type = "response")
+rf_MSE = round(mean((testing$price - rf_predict)^2), 4)
+print(paste("Test MSE of Random Forest: ", rf_MSE))
+```
+
+
+
+```{r}
+ggplot() + 
+  geom_point(aes(x = rf_predict, y = testing$price), alpha = 0.25) + 
+  geom_abline(slope = 1, intercept = 0) + 
+  ggtitle("Performance of Bagging on Test Set")
+```
+
+
+
+```{r echo = FALSE, message=FALSE, fig.show='hold', out.width="50%"}
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+
+```
+
+
+
+# Boosting
+
+```{r}
+lambdas = seq(0, 5, length.out = 100)
+trainErrors = rep(NA, length(lambdas))
+testErrors = rep(NA, length(lambdas))
+for(i in 1:length(lambdas)){
+  boost = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[i], distribution = "gaussian")
+  trainPred = predict(boost, training, n.trees = 1000)
+  testPred = predict(boost, testing, n.trees = 1000)
+  trainErrors[i] = mean((training$price - trainPred)^2)
+  testErrors[i] = mean((testing$price - testPred)^2)
+}
+```
+
+```{r}
+data.frame(x = lambdas, y = trainErrors) %>%
+  ggplot(aes(x = x , y = y)) + geom_point() +
+  xlab("Shrinkage") + ylab("Training MSE") + ggtitle("Shrinkage vs Training MSE")
+
+data.frame(x = lambdas, y = testErrors) %>%
+  ggplot(aes(x = x , y = y)) + geom_point() +
+  xlab("Shrinkage") + ylab("Test MSE") + ggtitle("Shrinkage vs Test MSE")
+
+```
+
+```{r}
+boosted = gbm(price ~ ., data = training, n.trees = 5000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
+summary(boosted)
+
+boosted_pred = predict(boosted, testing)
+boosted_MSE = round(mean((testing$price - boosted_pred)^2), 4)
+print(paste("Testing MSE for Boosted Model:", boosted_MSE))
+```
+
+
+
+# MSE Results             
+```{r}
+method = c("Linear Regression", "PCR", "PLS", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
+MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
+
+finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
+finalMSE
+```
+
+
+
+# City Prediction 
+```{r}
+final_testing_data = read.csv("testing_data.csv")
+testing_df = final_testing_data %>% 
+  select(-c(id, amenities, description, thumbnail_url, zipcode, name, neighbourhood, X)) %>%
+  mutate(first_review = as.Date(final_testing_data$first_review, format = "%Y-%m-%d")) %>%
+  mutate(last_review = as.Date(final_testing_data$last_review, format = "%Y-%m-%d")) %>%
+  mutate(host_since = as.Date(final_testing_data$host_since, format = "%Y-%m-%d")) %>%
+  mutate(host_response_rate = as.numeric(sub("%", "", final_testing_data$host_response_rate))/100)
+
+testing_df = testing_df %>%
+  mutate(first_review_year = as.Date(cut(testing_df$first_review, "year"))) %>%
+  mutate(last_review_year = as.Date(cut(testing_df$last_review, "year"))) %>%
+  mutate(host_since_year = as.Date(cut(testing_df$host_since, "year"))) %>%
+  mutate(host_has_profile_pic = replace(host_has_profile_pic, host_has_profile_pic == "", "f")) %>%   # eliminate blank values
+  mutate(host_identity_verified = replace(host_identity_verified, host_identity_verified == "", "f"))  # eliminate blank values
+
+testing_df = testing_df %>%
+  mutate(first_review_year = as.numeric(format(first_review_year, format = "%Y"))) %>%
+  mutate(last_review_year = as.numeric(format(last_review_year, format = "%Y"))) %>%
+  mutate(host_since_year = as.numeric(format(host_since_year, format = "%Y")))
+
+testing_df = testing_df %>%
+  mutate(first_review_year = factor(ifelse(first_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(last_review_year = factor(ifelse(last_review_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_since_year = factor(ifelse(host_since_year <= 2014, "Less2014", "Greater2014"))) %>%
+  mutate(host_response_rate  = if_else(is.na(host_response_rate), 0, host_response_rate)) %>%
+  mutate(cleaning_fee = as.factor(cleaning_fee)) %>%
+  select(-c(first_review, last_review, host_since)) %>%
+  mutate(price = 0) 
+
+testing_df = testing_df %>%
+  filter(property_type != "Chalet") %>%
+  filter(property_type != "Train") %>%
+  filter(property_type != "Vacation home") %>%
+  filter(property_type != "Earth House")
+
+testing_df = testing_df[complete.cases(testing_df), ]
+
+
+nrow(testing_df)
+head(testing_df)
+```
+
+
+
 
 
 
 \newpage
 
-**References:**
+# References:
 
 
 
