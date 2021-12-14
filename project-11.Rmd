@@ -627,7 +627,7 @@ testing_df %>%
 
 ```{r}
 levels(testing_df$property_type) <- levels(training_df$property_type)
-final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntree = 500)
+final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntree = 100)
 final_predict = predict(final_fit, testing_df, type = "response")
 ```
 
@@ -638,7 +638,12 @@ nrow(testing_df)
 testing_df$price = final_predict
 ```
 
+```{r}
+nyc = testing_df[testing_df$city == "NYC", ]
 
+ggplot(data = nyc, aes(longitude, latitude)) +
+  geom_tile() + geom_point(aes(longitude, latitude, color = price))
+```
 
 
 ## Results

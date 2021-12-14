@@ -9,6 +9,7 @@ output: pdf_document
 set.seed(445)
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(fig.width=5, fig.height=3) 
+knitr::opts_chunk$set(message = FALSE)
 library(ggplot2)
 library(tidyverse)
 library(tidyr)
@@ -325,7 +326,7 @@ print(paste("k-fold Cross Validation: ", linearReg_kfold_MSE))
 
 
 # Trees
-|   The next method we used was decision trees.  Fitting the fit using all predictors, we obtained a tree where five variables were actually used in the tree construction.  Those variables were room_type, longitude, bathrooms, city and bedrooms.  The tree has eight terminal nodes and obtained a test mean squared error of 0.1926.  The cv.tree function was used to perform cross-validation to determine the optimal level of tree complexity.  The optimal level was 8 and then using the prune.tree function, we attempted to prune our tree to the chosen complexity but found that our original tree was the same as the pruned tree.  The table below shows the log prices converted to dollars to help explain the terminal node values.  Node 1 is the farthest node on the left.  
+|   The next method we used was decision trees.  Fitting the fit using all predictors, we obtained a tree where five variables were actually used in the tree construction.  Those variables were room_type, longitude, bathrooms, city and bedrooms.  The tree has eight terminal nodes and obtained a test mean squared error of 0.1926.  Because the relationship between the features and the response is approximately linear, linear regression obtains a better MSE than the regression tree.  The cv.tree function was used to perform cross-validation to determine the optimal level of tree complexity.  The optimal level was 8 and then using the prune.tree function, we attempted to prune our tree to the chosen complexity but found that our original tree was the same as the pruned tree.  The table below shows the log prices converted to dollars to help explain the terminal node values.  Node 1 is the farthest node on the left.  
 
 ```{r message=FALSE, fig.width=5, fig.height=3,  fig.show='hold'} 
 # fit regression tree
@@ -350,8 +351,7 @@ kable(tree_explained)
 
 
 # Bagging
-|   
-
+|   Because decision trees suffer from high variance, we then moved onto bagging or bootstrap aggregation to see if we could lower the MSE of our trees.  Although bagging decision trees can be slow as it has to average hundreds or thousands of trees together, it won't lead to any overfitting.  We performed bagging on the training set to predict price and found that room type, bathrooms and latitude/longitude where the most important variables.  Our bagging model was able to obtain a MSE of 0.1293 and was found to be one of our best methods. 
 
 ```{r}
 bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
@@ -359,18 +359,6 @@ bag_predict = predict(bag_fit, testing, type = "response")
 bag_MSE = round(mean((testing$price - bag_predict)^2), 4)
 print(paste("Test MSE of Bagging: ", bag_MSE))
 ```
-
-```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3,  fig.show='hold'}
-ggplot() + 
-  geom_point(aes(x = bag_predict, y = testing$price), alpha = 0.25) + 
-  geom_abline(slope = 1, intercept = 0) + 
-  ggtitle("Performance of Bagging on Test Set")
-```
-
-
-
-
-
 
 ```{r echo = FALSE, message=FALSE, fig.show='hold', out.width="50%"}
 data.frame(bag_fit$importance) %>%
@@ -387,10 +375,20 @@ data.frame(bag_fit$importance) %>%
 
 ```
 
+|   The plot below shows an Actual vs Predicted plot for the predicted values using bagging.  In general, the data points move positively along the diagonal line with a slight horizontal tilt in the data points compared to the horizontal line.  There are a few outliers especially on the right side of the plot.  It appears bagging is predicting slightly higher than the actual values for prices less than 5 and slightly lower than the actual values for prices more than 5.  However, this plot shows the overall effectiveness for bagging.  
+
+
+```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3, fig.show='hold'}
+ggplot() + 
+  geom_point(aes(x = testing$price, y = bag_predict), alpha = 0.25) + 
+  geom_abline(slope = 1, intercept = 0) + xlab("Predicted") + ylab("Predicted") +
+  ggtitle("Performance of Bagging on Test Set")
+```
+
 
 
 # Random Forests
-
+|   Next, we wanted to determine if random forests could provide an improvement over the bagged trees and see if decorrelating the trees will lead to better MSE result.  The choice of m or the size of the predictor subset was set to the square root of the total predictor set.  
 
 ```{r}
 rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
@@ -398,6 +396,22 @@ rf_predict = predict(rf_fit, testing, type = "response")
 rf_MSE = round(mean((testing$price - rf_predict)^2), 4)
 print(paste("Test MSE of Random Forest: ", rf_MSE))
 ```
+
+```{r echo = FALSE, message=FALSE, fig.show='hold', out.width="50%"}
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(rf_fit$importance) %>%
+  mutate(variable = rownames(rf_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+
+```
+
 
 
 
@@ -410,37 +424,21 @@ ggplot() +
 
 
 
-```{r echo = FALSE, message=FALSE, fig.show='hold', out.width="50%"}
-data.frame(rf_fit$importance) %>%
-  mutate(variable = rownames(rf_fit$importance)) %>%
-  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
-  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
-  geom_point(aes(X.IncMSE, variable))  
-
-data.frame(rf_fit$importance) %>%
-  mutate(variable = rownames(rf_fit$importance)) %>%
-  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
-  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
-  geom_point(aes(IncNodePurity, variable))  
-
-```
-
-
-
 # Boosting
 
 ```{r}
-lambdas = seq(0, 5, length.out = 100)
+lambdas = seq(0, 0.5, length.out = 100)
 trainErrors = rep(NA, length(lambdas))
 testErrors = rep(NA, length(lambdas))
 for(i in 1:length(lambdas)){
-  boost = gbm(price ~ ., data = training, n.trees = 1000, shrinkage = lambdas[i], distribution = "gaussian")
-  trainPred = predict(boost, training, n.trees = 1000)
-  testPred = predict(boost, testing, n.trees = 1000)
+  boost = gbm(price ~ ., data = training, n.trees = 100, shrinkage = lambdas[i], distribution = "gaussian")
+  trainPred = predict(boost, training, n.trees = 100)
+  testPred = predict(boost, testing, n.trees = 100)
   trainErrors[i] = mean((training$price - trainPred)^2)
   testErrors[i] = mean((testing$price - testPred)^2)
 }
 ```
+
 
 ```{r}
 data.frame(x = lambdas, y = trainErrors) %>%
@@ -467,15 +465,17 @@ print(paste("Testing MSE for Boosted Model:", boosted_MSE))
 # MSE Results             
 ```{r}
 method = c("Linear Regression", "PCR", "PLS", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
-MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
+# MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
 
-finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
-finalMSE
+# finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
+# kable(finalMSE)
 ```
 
 
 
-# City Prediction 
+# City Prediction     
+|    Our original data set is from a past and completed Kaggle competition.  Thus, the data was split into training and testing files.  The testing file has no response column included because that is how they would determine a winner.  Even though our testing results can't be compared to the actual prices, we can still use it for testing our final model.  
+
 ```{r}
 final_testing_data = read.csv("testing_data.csv")
 testing_df = final_testing_data %>% 
@@ -517,6 +517,13 @@ testing_df = testing_df[complete.cases(testing_df), ]
 
 nrow(testing_df)
 head(testing_df)
+```
+
+```{r}
+# levels(testing_df$property_type) <- levels(training_df$property_type)
+# final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntree = 500)
+# final_predict = predict(final_fit, testing_df, type = "response")
+# final_predict
 ```
 
 
