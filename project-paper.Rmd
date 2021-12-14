@@ -317,12 +317,148 @@ print(paste("k-fold Cross Validation: ", linearReg_kfold_MSE))
 |   As shown in the results above, our linear regression model was able to set a good baseline for future methods with a mean squared error of 0.1652.  With our linear regression model, we also applied some cross validation.  For Leave One Out Cross Validation, we achieved a mean squared error 0.1829 and applying k-fold cross validation with k = 10, we achieved a mean square error of 0.3063.  Clearly, Leave One Out Cross Validation performed better than the k-fold cross validation.  
 
 
-# Regression Splines/Generalized Additive Models           
+# Regression Splines/Generalized Additive Models          
+
+
+```{r warning = FALSE}
+fit <- glm(price ~ bs(accommodates, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(accommodates, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(accommodates, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+  
+degfree <- c(3, 4, 5)
+cv <- c(cvs, cvs2, cvs3)
+df_accomodates <- data.frame(degfree, cv)
+
+#spline on review_scores_rating
+fit <- glm(price ~ bs(review_scores_rating, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(review_scores_rating, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(review_scores_rating, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5)
+cv <- c(cvs, cvs2, cvs3)
+df_reviews <- data.frame(degfree, cv)
+
+#spline on bathrooms
+fit <- glm(price ~ bs(bathrooms, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(bathrooms, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(bathrooms, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5)
+cv <- c(cvs, cvs2, cvs3)
+df_bathrooms <- data.frame(degfree, cv)
+
+#spline on bedrooms
+fit <- glm(price ~ bs(bedrooms, df = 3), data = training)
+cvs <- cv.glm(testing, fit, K = 10)$delta[1]
+
+fit2 <- glm(price ~ bs(bedrooms, df = 4), data = training)
+cvs2 <- cv.glm(testing, fit2, K = 10)$delta[1]
+
+fit3 <- glm(price ~ bs(bedrooms, df = 5), data = training)
+cvs3 <- cv.glm(testing, fit3, K = 10)$delta[1]
+
+degfree <- c(3, 4, 5)
+cv <- c(cvs, cvs2, cvs3)
+df_bedrooms <- data.frame(degfree, cv)
+
+
+df = c(3, 4, 5)
+splines = data.frame(df = df, accommodates = df_accomodates$cv, reviews = df_reviews$cv, bedrooms = df_bedrooms$cv, bathrooms = df_bathrooms$cv)
+splines = round(splines, 4)
+splines
+```
+
+
+```{r warning = FALSE}
+#fit GAM
+gammod <- lm(price ~ . + bs(accommodates, df = 2) + bs(review_scores_rating, df = 4) + bs(bathrooms, df = 4) + bs(bedrooms, df = 3), data = training)
+summary(gammod)
+
+gam_predict = predict(gammod, newdata = testing)
+gam_MSE = round(mean((testing$price - gam_predict)^2), 4)
+print(paste("Test MSE of GAM: ", gam_MSE))
+```
+
 
 
 
 # PCR and PLS      
 
+```{r}
+#Fit PCR
+m0 <- pcr(price~., data = training,ncomp= 20, validation = "CV")
+mse <- MSEP(m0)
+data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
+ggplot() +
+  geom_line(aes(M, mse)) +
+  geom_point(aes(M, mse))
+# based off of plot we will select 15 components (elbow method) = 99.97% of variance explained
+mse$val
+summary(m0)
+
+# R^2 vs Principal Components Plot
+validationplot(m0, val.type = "R2")
+
+# Test Set Predictions
+pcr_pred <- predict(m0, testing, ncomp = 15)
+
+# Prediction Plot
+predplot(m0, ncomp = 15)
+
+# Check for NA values
+sum(is.na(pcr_pred))
+sum(is.na(testing$price))
+
+# Calculate Test Set MSE
+PCR_mse <- round(mean((testing$price - pcr_pred)^2), 4)
+PCR_mse
+
+```
+
+
+```{r}
+# Fit PLS
+m1 <- plsr(price~., data=training, validation="CV",ncomp=20)
+
+# Plot MSE
+mse1 <- MSEP(m1)
+data.frame(M = mse1$comps, mse = t(as.data.frame(mse1$val))[, "CV"]) %>%
+ggplot() +
+  geom_line(aes(M, mse)) +
+  geom_point(aes(M, mse))
+
+# Number of Components chosen is 10 = 99.93% of Variance Explained
+summary(m1)
+
+# Test Set Predictions
+pls_pred <- predict(m1, testing, ncomp = 10)
+
+# Prediction Plot
+predplot(m1, ncomp = 10)
+
+# Check for NA values
+sum(is.na(pls_pred))
+
+# Calculate Test Set MSE
+PLS_mse <- round(mean((testing$price - pls_pred)^2), 4)
+PLS_mse
+
+```
 
 
 # Trees
@@ -440,7 +576,7 @@ for(i in 1:length(lambdas)){
 ```
 
 
-```{r}
+```{r echo = FALSE, message=FALSE, fig.show='hold', out.width="50%"}
 data.frame(x = lambdas, y = trainErrors) %>%
   ggplot(aes(x = x , y = y)) + geom_point() +
   xlab("Shrinkage") + ylab("Training MSE") + ggtitle("Shrinkage vs Training MSE")
@@ -451,7 +587,7 @@ data.frame(x = lambdas, y = testErrors) %>%
 
 ```
 
-```{r}
+```{r fig.height=5}
 boosted = gbm(price ~ ., data = training, n.trees = 5000, shrinkage = lambdas[which.min(testErrors)], distribution = "gaussian")
 summary(boosted)
 
@@ -465,10 +601,10 @@ print(paste("Testing MSE for Boosted Model:", boosted_MSE))
 # MSE Results             
 ```{r}
 method = c("Linear Regression", "PCR", "PLS", "Splines", "GAM", "Trees", "Bagging", "Random Forest", "Boosting")
-# MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
+MSEnumbers = c(linearReg_kfold_MSE, PCR_mse, PLS_mse, df_reviews[3,2], gam_MSE, tree_MSE, bag_MSE, rf_MSE, boosted_MSE)
 
-# finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
-# kable(finalMSE)
+finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars = round(exp(MSEnumbers), 2))
+kable(finalMSE)
 ```
 
 
@@ -513,10 +649,6 @@ testing_df = testing_df %>%
   filter(property_type != "Earth House")
 
 testing_df = testing_df[complete.cases(testing_df), ]
-
-
-nrow(testing_df)
-head(testing_df)
 ```
 
 ```{r}

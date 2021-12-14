@@ -305,7 +305,6 @@ sum(is.na(testing$price))
 PCR_mse <- round(mean((testing$price - pcr_pred)^2), 4)
 PCR_mse
 
-
 ```
 
 
