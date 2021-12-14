@@ -262,7 +262,7 @@ testing = training_df[-trn, ]
 |   In order to both train and test using the training data file, we needed to split the 17,500 total observations into roughly a 50/50 split.  To do this, we took a random sample of 9000 observations and made that the training set.  From now on, this random sample with be referred to as the training set. The remaining 7500 observations became our testing set for determining the the performance of each method.  
 
 # Regression      
-|   To begin, we started with a simple multiple linear regression model.  We wanted to give ourselves a baseline mean squared error value and because linear regression is the easiest to apply and interpret, we determined this was the best place to start.  The model was fit using all twenty-two variables and the training set.  
+|   To begin, we started with a simple multiple linear regression model.  We wanted to give ourselves a baseline mean squared error value and because linear regression is the easiest to apply and interpret, we determined this is the best place to start.  The model is fit using all twenty-two variables and the training set.  
 
 ```{r out.width="33%", echo=FALSE}
 linear = lm(price ~ ., data = training)
@@ -314,7 +314,7 @@ linearReg_kfold_MSE = round(mean(results_kfold), 4)
 print(paste("k-fold Cross Validation: ", linearReg_kfold_MSE))
 ```
 
-|   As shown in the results above, our linear regression model was able to set a good baseline for future methods with a mean squared error of 0.1652.  With our linear regression model, we also applied some cross validation.  For Leave One Out Cross Validation, we achieved a mean squared error 0.1829 and applying k-fold cross validation with k = 10, we achieved a mean square error of 0.3063.  Clearly, Leave One Out Cross Validation performed better than the k-fold cross validation.  
+|   As shown in the results above, our linear regression model is able to set a good baseline for future methods with a mean squared error of 0.1652.  With our linear regression model, we also applied some cross validation.  For Leave One Out Cross Validation, we achieved a mean squared error 0.1829 and applying k-fold cross validation with k = 10, we achieved a mean square error of 0.3063.  Clearly, Leave One Out Cross Validation performed better than the k-fold cross validation.  
 
 
 # Regression Splines/Generalized Additive Models          
@@ -462,7 +462,7 @@ PLS_mse
 
 
 # Trees
-|   The next method we used was decision trees.  Fitting the fit using all predictors, we obtained a tree where five variables were actually used in the tree construction.  Those variables were room_type, longitude, bathrooms, city and bedrooms.  The tree has eight terminal nodes and obtained a test mean squared error of 0.1926.  Because the relationship between the features and the response is approximately linear, linear regression obtains a better MSE than the regression tree.  The cv.tree function was used to perform cross-validation to determine the optimal level of tree complexity.  The optimal level was 8 and then using the prune.tree function, we attempted to prune our tree to the chosen complexity but found that our original tree was the same as the pruned tree.  The table below shows the log prices converted to dollars to help explain the terminal node values.  Node 1 is the farthest node on the left.  
+|   Our next method is decision trees.  Fitting the fit using all predictors, we obtained a tree where five variables were actually used in the tree construction.  Those variables were room_type, longitude, bathrooms, city and bedrooms.  The tree has eight terminal nodes and obtained a test mean squared error of 0.1926.  Because the relationship between the features and the response is approximately linear, linear regression obtains a better MSE than the regression tree.  The cv.tree function is used to perform cross-validation to determine the optimal level of tree complexity.  The optimal level is 8 and then using the prune.tree function, we attempted to prune our tree to the chosen complexity but found that our original tree is the same as the pruned tree.  The table below shows the log prices converted to dollars to help explain the terminal node values.  Node 1 is the farthest node on the left.  
 
 ```{r message=FALSE, fig.width=5, fig.height=3,  fig.show='hold'} 
 # fit regression tree
@@ -487,7 +487,7 @@ kable(tree_explained)
 
 
 # Bagging
-|   Because decision trees suffer from high variance, we then moved onto bagging or bootstrap aggregation to see if we could lower the MSE of our trees.  Although bagging decision trees can be slow as it has to average hundreds or thousands of trees together, it won't lead to any overfitting.  We performed bagging on the training set to predict price and found that room type, bathrooms and latitude/longitude where the most important variables.  Our bagging model was able to obtain a MSE of 0.1293 and was found to be one of our best methods. 
+|   Because decision trees suffer from high variance, we then moved onto bagging or bootstrap aggregation to see if we could lower the MSE of our trees.  Although bagging decision trees can be slow as it has to average hundreds or thousands of trees together, it won't lead to any overfitting.  We performed bagging on the training set to predict price and found that room type, bathrooms and latitude/longitude where the most important variables.  Our bagging model is able to obtain a MSE of 0.1293 and is found to be one of our best methods. 
 
 ```{r}
 bag_fit <- randomForest(price ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
@@ -517,14 +517,16 @@ data.frame(bag_fit$importance) %>%
 ```{r echo = FALSE, message=FALSE, fig.width=5, fig.height=3, fig.show='hold'}
 ggplot() + 
   geom_point(aes(x = testing$price, y = bag_predict), alpha = 0.25) + 
-  geom_abline(slope = 1, intercept = 0) + xlab("Predicted") + ylab("Predicted") +
+  geom_abline(slope = 1, intercept = 0) + xlab("Actual") + ylab("Predicted") +
   ggtitle("Performance of Bagging on Test Set")
 ```
 
 
 
 # Random Forests
-|   Next, we wanted to determine if random forests could provide an improvement over the bagged trees and see if decorrelating the trees will lead to better MSE result.  The choice of m or the size of the predictor subset was set to the square root of the total predictor set.  
+|   Next, we wanted to determine if random forests could provide an improvement over the bagged trees and see if decorrelating the trees will lead to better MSE result.  The choice of m or the size of the predictor subset is set to the square root of the total predictor set.  Similar to bagging, we didn't have to worry about overfitting and the importance of each variable can be examined.  
+
+|   After performing the random forests with 5000 trees, we found that room type is by far the most important variable with longitude, latitude, bedrooms and accommodates also showing importance.  With a MSE of 0.1301, the overall performance is slightly worse than bagging but still very close.  
 
 ```{r}
 rf_fit <- randomForest(price ~ ., data = training, mtry = sqrt(ncol(training) - 1), importance = TRUE)
@@ -549,18 +551,21 @@ data.frame(rf_fit$importance) %>%
 ```
 
 
-
+|   Similar to bagging, the plot below shows an Actual vs Predicted plot for the predicted values using random forests.  We see the points still move positively along the diagonal line and there are a few outliers.  This plot is very similar to the plot with bagging and because the methods are very similar, this is what we should expect.  
 
 ```{r}
 ggplot() + 
-  geom_point(aes(x = rf_predict, y = testing$price), alpha = 0.25) + 
-  geom_abline(slope = 1, intercept = 0) + 
-  ggtitle("Performance of Bagging on Test Set")
+  geom_point(aes(x = testing$price, y = rf_predict), alpha = 0.25) + 
+  geom_abline(slope = 1, intercept = 0) + xlab("Actual") + ylab("Predicted") +
+  ggtitle("Performance of Random Forest on Test Set")
+
 ```
 
 
 
 # Boosting
+
+|   In an attempt to improve our prediction results from our trees, our last method is boosting.  Before boosting, we run a simulation to find the best lambda value and found that the best lambda value to occur around 0.05.  With the number of trees set to 5000, boosting is conducted.  The most important variable was actually property type with bathrooms, room type and bedrooms also relatively important.  It's interesting to see property type with such high importance when bagging and random forests had room type with the largest importance.  The MSE is 0.1317 which is also close to the results for bagging and random forests.  
 
 ```{r}
 lambdas = seq(0, 0.5, length.out = 100)
@@ -607,6 +612,7 @@ finalMSE = data.frame(Methods = method, MSE = round(MSEnumbers,4), MSE_Dollars =
 kable(finalMSE)
 ```
 
+|    After implementing all of our methods, we see that bagging and random forests perform the best with boosting not far behind and splines having the worst performance.  To put these errors rate in terms of dollars and not logarithmic dollars, the MSE_Dollars is provided.  As shown, each method has about a dollar of error.  We think that is very good when considering the amount of listings and variables used to train these models.  Given present data, we think this could potentially be useful for current or future AirBnB hosts and AirBnB renters.  
 
 
 # City Prediction     
