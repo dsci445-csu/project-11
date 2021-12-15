@@ -399,8 +399,7 @@ print(paste("Test MSE of GAM: ", gam_MSE))
 
 # PCR and PLS      
 
-
-Moving forward we wanted to try PCR and PLS models. We were curious to see if implementing dimension reduction methods would lead to lower error and better results when predicting log price. Both models were fitted on all input variables just like the regression splines and GAMs. The first model to be fitted was the PCR model. In order to find the optimal number of components 10 fold cross-validation was conducted for models with numbers of components ranging from 1 to 20. Below shows the cross-validation MSE for the corresponding number of components. From this we chose a value of 15 as we deemed the decrease in MSE to be realtively insignificant after 15 components. These 15 components account for approximately 99% of the variability in the data.
+|   Moving forward we wanted to try PCR and PLS models. We were curious to see if implementing dimension reduction methods would lead to lower error and better results when predicting log price. Both models were fitted on all input variables just like the regression splines and GAMs. The first model to be fitted was the PCR model. In order to find the optimal number of components 10 fold cross-validation was conducted for models with numbers of components ranging from 1 to 20. Below shows the cross-validation MSE for the corresponding number of components. From this we chose a value of 15 as we deemed the decrease in MSE to be realtively insignificant after 15 components. These 15 components account for approximately 99% of the variability in the data.
 ```{r,echo = FALSE}
 #Fit PCR
 m0 <- pcr(price~., data = training,ncomp= 20, validation = "CV")
@@ -420,7 +419,7 @@ ggplot() +
 ```
 
 
-Below we have our measured versus predicted plot. As you can see in general our predictions due a good job of following the general direction of the red target line with the large moajority of points lying on or around the line. However, as measured values get higher it appears that the PCR model does have a tendency to under predict leading to a fanning out of data points. Our Calculated test set MSE is 0.2192. This outperforms the base regression model which had an MSE of 0.3036.
+|   Below we have our measured versus predicted plot. As you can see in general our predictions due a good job of following the general direction of the red target line with the large moajority of points lying on or around the line. However, as measured values get higher it appears that the PCR model does have a tendency to under predict leading to a fanning out of data points. Our Calculated test set MSE is 0.2192. This outperforms the base regression model which had an MSE of 0.3036.
 
 
 ```{r,echo = FALSE}
@@ -440,7 +439,7 @@ print(paste("Test MSE of PCR: ", PCR_mse))
 ```
 
 
-Moving on from PCR we tried out PLS. PLS is very similar to PCR in that they both implement dimension reduction one of the key differences is that PLS is supervised whereas PCR is not. Below we have a plot of the 10-fold cross validation MSE's for different models with number of components ranging from 1 to 20. From this plot we decided to go with 10 components because after 10 components there is almost no significant decrease in MSE. It is interesting to note that the PLS model has 5 less components and still accounts for the same amount of variability in the data at 99%.  
+|   Moving on from PCR we tried out PLS. PLS is very similar to PCR in that they both implement dimension reduction one of the key differences is that PLS is supervised whereas PCR is not. Below we have a plot of the 10-fold cross validation MSE's for different models with number of components ranging from 1 to 20. From this plot we decided to go with 10 components because after 10 components there is almost no significant decrease in MSE. It is interesting to note that the PLS model has 5 less components and still accounts for the same amount of variability in the data at 99%.  
 
 ```{r,echo= FALSE}
 # Fit PLS
@@ -461,7 +460,7 @@ ggplot() +
 
 
 
-Below we have plot of the test set predicted versus measured values for the PLS model. Here we can see that in general the predicted/measured points follow the ideal line slightly tighter than the PCR model before. The plot also shows us that the PLS still underpredicts at higher measured values but it appears to be under predicting by less as the data points don't fan out as wide as they do in the PCR. This increase in accuracy is reflected in the MSE with a value of 0.1765 obtained. This is better than both the base regression and the PCR models. 
+|   Below we have plot of the test set predicted versus measured values for the PLS model. Here we can see that in general the predicted/measured points follow the ideal line slightly tighter than the PCR model before. The plot also shows us that the PLS still underpredicts at higher measured values but it appears to be under predicting by less as the data points don't fan out as wide as they do in the PCR. This increase in accuracy is reflected in the MSE with a value of 0.1765 obtained. This is better than both the base regression and the PCR models. 
 
 ```{r,echo=FALSE}
 # Test Set Predictions
