@@ -253,13 +253,13 @@ As a group, we felt these twenty-two predictors were all relevant and important 
 
 
 # Models   
-|   There are have a lot of machine learning methods discussed this past semester and we wanted to incorporate some of our favorites into our research.  Thus, we have included linear regression, splines, general additive models, PCR, PLS, trees, bagging, random forests and bagging.   
+|   There have been a lot of machine learning methods discussed this past semester and we wanted to incorporate some of our favorites into our research.  Thus, we have included linear regression, splines, general additive models, PCR, PLS, trees, bagging, random forests and boosting.   
 ```{r}
 trn = sample(seq_len(nrow(training_df)), 9000)
 training = training_df[trn, ]
 testing = training_df[-trn, ]
 ```
-|   In order to both train and test using the training data file, we needed to split the 17,500 total observations into roughly a 50/50 split.  To do this, we took a random sample of 9000 observations and made that the training set.  From now on, this random sample with be referred to as the training set. The remaining 7500 observations became our testing set for determining the the performance of each method.  
+|   In order to both train and test using the training data file, since the provided testing file has no response variable, we needed to split the 17,500 total observations into roughly a 50/50 split.  To do this, we took a random sample of 9000 observations and made that the training set.  From now on, this random sample with be referred to as the training set. The remaining 7500 observations became our testing set for determining the the performance of each method.  
 
 # Regression      
 |   To begin, we started with a simple multiple linear regression model.  We wanted to give ourselves a baseline mean squared error value and because linear regression is the easiest to apply and interpret, we determined this is the best place to start.  The model is fit using all twenty-two variables and the training set.  
@@ -677,10 +677,10 @@ testing_df = testing_df[complete.cases(testing_df), ]
 ```
 
 ```{r}
-# levels(testing_df$property_type) <- levels(training_df$property_type)
-# final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntree = 500)
-# final_predict = predict(final_fit, testing_df, type = "response")
-# final_predict
+levels(testing_df$property_type) <- levels(training_df$property_type)
+final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntree = 500)
+final_predict = predict(final_fit, testing_df, type = "response")
+final_predict
 ```
 
 
