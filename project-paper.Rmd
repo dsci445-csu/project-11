@@ -399,6 +399,8 @@ print(paste("Test MSE of GAM: ", gam_MSE))
 
 # PCR and PLS      
 
+
+Moving forward we wanted to try PCR and PLS models. We were curious to see if implementing dimension reduction methods would lead to lower error and better results when predicting log price. Both models were fitted on all input variables just like the regression splines and GAMs. The first model to be fitted was the PCR model. In order to find the optimal number of components 10 fold cross-validation was conducted for models with numbers of components ranging from 1 to 20. Below shows the cross-validation MSE for the corresponding number of components. From this we chose a value of 15 as we deemed the decrease in MSE to be realtively insignificant after 15 components.
 ```{r}
 #Fit PCR
 m0 <- pcr(price~., data = training,ncomp= 20, validation = "CV")
@@ -406,30 +408,39 @@ mse <- MSEP(m0)
 data.frame(M = mse$comps, mse = t(as.data.frame(mse$val))[, "CV"]) %>%
 ggplot() +
   geom_line(aes(M, mse)) +
-  geom_point(aes(M, mse))
+  geom_point(aes(M, mse)) + ggtitle("Number of Components and MSE")+ xlab("# of components")
 # based off of plot we will select 15 components (elbow method) = 99.97% of variance explained
-mse$val
-summary(m0)
+#mse$val
+#summary(m0)
 
 # R^2 vs Principal Components Plot
-validationplot(m0, val.type = "R2")
+# validationplot(m0, val.type = "R2")
 
+
+```
+
+
+Below we have our measured versus predicted plot. As you can see in general our predictions due a good job of following the general direction of the red target line with the large moajority of points lying on or around the line. However, as measured values get higher it appears that the PCR model does have a tendency to under predict leading to a fanning out of data points. Our Calculated test set MSE is 0.2192. This outperforms the base regression model which had an MSE of 0.3036.
+
+
+```{r}
 # Test Set Predictions
 pcr_pred <- predict(m0, testing, ncomp = 15)
 
 # Prediction Plot
-predplot(m0, ncomp = 15)
+predplot(m0, ncomp = 15,line =TRUE, line.col ="red", line.lty ="dashed", main = "PCR Predictions")
 
 # Check for NA values
-sum(is.na(pcr_pred))
-sum(is.na(testing$price))
+#sum(is.na(pcr_pred))
+#sum(is.na(testing$price))
 
 # Calculate Test Set MSE
 PCR_mse <- round(mean((testing$price - pcr_pred)^2), 4)
 PCR_mse
-
 ```
 
+
+Moving on from PCR we tried out PLS. PLS is very similar to PCR in that they both implement dimension reduction one of the key differences is that PLS is supervised whereas PCR is not. 
 
 ```{r}
 # Fit PLS
@@ -440,19 +451,25 @@ mse1 <- MSEP(m1)
 data.frame(M = mse1$comps, mse = t(as.data.frame(mse1$val))[, "CV"]) %>%
 ggplot() +
   geom_line(aes(M, mse)) +
-  geom_point(aes(M, mse))
+  geom_point(aes(M, mse)) + ggtitle("Number of Components and MSE")+ xlab("# of components")
 
 # Number of Components chosen is 10 = 99.93% of Variance Explained
-summary(m1)
+# summary(m1)
 
+
+```
+
+
+
+```{r}
 # Test Set Predictions
 pls_pred <- predict(m1, testing, ncomp = 10)
 
 # Prediction Plot
-predplot(m1, ncomp = 10)
+predplot(m1, ncomp = 10, line = TRUE,line.col ="red", line.lty ="dashed", main = "PLS Predictions")
 
 # Check for NA values
-sum(is.na(pls_pred))
+# sum(is.na(pls_pred))
 
 # Calculate Test Set MSE
 PLS_mse <- round(mean((testing$price - pls_pred)^2), 4)
