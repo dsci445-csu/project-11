@@ -682,6 +682,7 @@ testing_df = testing_df[complete.cases(testing_df), ]
 levels(testing_df$property_type) <- levels(training_df$property_type)
 final_fit <- randomForest(price ~ ., data = training_df, mtry = sqrt(ncol(training_df) - 1), importance = TRUE, ntree = 500)
 final_predict = predict(final_fit, testing_df, type = "response")
+testing_df$price = final_predict
 ```
 
 |    The plots below are price predictions for New York City and Los Angeles using the testing data.  We can see the areas where you can expect to pay and the places where you find a good deal.  In general, it appears AirBnB listings in Los Angeles are higher priced compared to New York. 
@@ -695,16 +696,13 @@ ggplot(data = nyc, aes(longitude, latitude)) +
 
 la = testing_df[testing_df$city == "LA", ]
 ggplot(data = la, aes(longitude, latitude)) +
-  geom_point(aes(color = price, alpha = 0.15)) +
+  geom_point(aes(color = price)) +
   scale_color_gradient(low = "blue", high = "red") + 
   ggtitle("LA Price Predictions")
 ```
 
 
 |   In all, we think this research could potentially lead to models that help hosts and renters alike.  With current data and numbers, applying this research to your city of destination or residence might save or earn you some extra money.  
-
-
-
 
 
 
