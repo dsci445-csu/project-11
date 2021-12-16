@@ -29,6 +29,7 @@ library(GGally)
 library(pls)
 library(splines)
 library(boot)
+library(ggmap)
 ```
 
 ```{r}
@@ -641,13 +642,20 @@ testing_df$price = final_predict
 nyc = testing_df[testing_df$city == "NYC", ]
 
 ggplot(data = nyc, aes(longitude, latitude)) +
-  geom_tile() + geom_point(aes(longitude, latitude, color = price))
+  geom_point(aes(color = price, alpha = 0.25)) +
+  scale_color_gradient(low = "blue", high = "red") + 
+  ggtitle("NYC Price Predictions")
+
+la = testing_df[testing_df$city == "LA", ]
+ggplot(data = la, aes(longitude, latitude)) +
+  geom_point(aes(color = price, alpha = 0.25)) +
+  scale_color_gradient(low = "blue", high = "red") + 
+  ggtitle("LA Price Predictions")
 ```
 
 
 ## Results
 Use best model and predict prices for a certain city and plot based on price (heatmap?)
-
 
 
 
