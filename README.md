@@ -6,3 +6,7 @@ Soccer is a popular sport around the world. Millions of people, whether they pla
 ## Dataset Information
 - Train Data: Seasons 2008 to 2016
 - Test Data: Season 2017
+## Tasks
+Task 1: Data Preparation
+- Objective: Prepare the necessary data for the models
+- Steps:
