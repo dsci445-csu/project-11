@@ -16,3 +16,14 @@ Task 2: Classification
 - Task 3: Regression
 - Objective: Predicting the number of goals scored in a match
 - Steps:
+## Data Sources
+- [European Soccer Database] (https://www.kaggle.com/datasets/hugomathien/soccer/data)
+
+## Project Structure
+
+Our repository is organized as follows:
+
+- **data/** — contains the raw and cleaned datasets used in the analysis.
+- **code/** — R scripts for loading, cleaning, exploring, and modeling the data.
+- **paper/** — RMarkdown file for the final written report.
+- **slides/** — RMarkdown slides for the final presentation.
