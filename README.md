@@ -10,3 +10,9 @@ Soccer is a popular sport around the world. Millions of people, whether they pla
 Task 1: Data Preparation
 - Objective: Prepare the necessary data for the models
 - Steps:
+Task 2: Classification
+- Objective: Predicting match outcomes (win at home/away, tie, loss home/away)
+- Steps:
+- Task 3: Regression
+- Objective: Predicting the number of goals scored in a match
+- Steps:
