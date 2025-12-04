@@ -1,6 +1,6 @@
 ---
 title: "Predicting Soccer Match Outcomes"
-author: "Theyab Alkhoori, Jasmine Moskowitz"
+author: "Theyab Alkhoori, Jasmine Moskowitz, Max Treusein"
 date: "2025-12-02"
 output: html_document
 ---
@@ -21,4 +21,6 @@ Our second task is using classification methods to predict match outcomes (home 
 
 ## Task 3: Regression
 Our third task is to predict the number of goals scored in a match. 
+
+# Results
 
