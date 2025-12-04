@@ -4,27 +4,10 @@ author: "Theyab Alkhoori, Jasmine Moskowitz"
 date: "2025-12-02"
 output: html_document
 ---
+# Introduction
+Around the world, soccer is a popular sport. Millions of people enjoy using each team's data to predict match outcomes. Using information from more than 25,000 games, more than 10,000 players, and eleven European nations, our project aims to predict match results. We will predict the 2017 season using all of these statistics from the 2008 to 2016 seasons, then compare our predictions with the actual outcomes.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+1. If the home team wins, ties, or loses.  
+2. The number of goals scored during a game.
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+We used the **European Soccer Database** from Kaggle, which includes 11 leagues, 10,000 players, and more than 25,000.
