@@ -24,3 +24,675 @@ Our third task is to predict the number of goals scored in a match.
 
 # Results
 
+=======
+1. If the home team wins, ties, or loses.
+2. The number of goals scored during a game.
+
+We used the **European Soccer Database** from Kaggle, which includes 11 leagues, 10,000 players, and more than 25,000.
+
+```{r}
+library(tidymodels)
+library(discrim)
+library(ISLR)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(lubridate)
+
+set.seed(445)
+
+## Load raw data ----
+match <- read.csv("Match.csv")
+team <- read.csv("Team.csv")
+team_attr <- read.csv("Team_Attributes.csv")
+
+## Team-season attributes ----
+team_attr |>
+  mutate(
+    date = as.Date(date),
+    season = year(date)
+  ) |>
+  filter(season >= 2010, season <= 2015) |>
+  select(-id, -date) |>
+  group_by(team_api_id, season) |>
+  summarise(
+    across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+    .groups = "drop"
+  ) -> team_season_attr
+
+team |>
+  select(team_api_id, team_long_name, team_short_name) |>
+  right_join(team_season_attr, by = "team_api_id") -> team_season_attr
+
+num_cols <- sapply(team_season_attr, is.numeric)
+
+team_season_attr[num_cols] <- lapply(team_season_attr[num_cols], function(x) {
+  if (all(is.na(x))) return(x)
+  x[is.na(x)] <- mean(x, na.rm = TRUE)
+  x
+})
+
+## Build match-level outcome and season ----
+match |>
+  mutate(
+    date = as.Date(date),
+    season = year(date),
+    home_result = case_when(
+      home_team_goal > away_team_goal ~ "Win",
+      home_team_goal == away_team_goal ~ "Draw",
+      home_team_goal < away_team_goal ~ "Loss"
+    ),
+    home_result = factor(home_result, levels = c("Win", "Draw", "Loss"))
+  ) |>
+  filter(season >= 2010, season <= 2015) |>
+  select(
+    match_api_id,
+    season,
+    date,
+    home_team_api_id,
+    away_team_api_id,
+    home_team_goal,
+    away_team_goal,
+    home_result
+  ) -> matches_base
+
+## Home-team attributes ----
+team_season_attr |>
+  rename(
+    home_team_api_id = team_api_id
+  ) |>
+  rename_with(
+    ~ paste0("home_", .x),
+    .cols = -c(home_team_api_id, season)
+  ) -> home_attr
+
+## Away-team attributes ----
+team_season_attr |>
+  rename(
+    away_team_api_id = team_api_id
+  ) |>
+  rename_with(
+    ~ paste0("away_", .x),
+    .cols = -c(away_team_api_id, season)
+  ) -> away_attr
+
+## Join attributes onto matches ----
+matches_base |>
+  left_join(home_attr, by = c("season", "home_team_api_id")) |>
+  left_join(away_attr, by = c("season", "away_team_api_id")) -> soccer_matches
+
+## Final train / test splits ----
+train_matches <- soccer_matches |> filter(season <= 2014)
+test_matches  <- soccer_matches |> filter(season == 2015)
+
+head(train_matches)
+head(test_matches)
+
+```
+```{r}
+#write.csv(train_matches, file = "train_matches.csv", row.names = FALSE)
+#write.csv(test_matches, file = "test_matches.csv", row.names = FALSE)
+```
+
+```{r}
+# Prepare training and test data with predictors only
+train_data <- train_matches |>
+  mutate(
+    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
+    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
+    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
+    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
+    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
+    defencePressure_diff         = home_defencePressure         - away_defencePressure,
+    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
+    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
+    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
+    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
+  ) |>
+  select(
+    home_result,
+    buildUpPlaySpeed_diff,
+    buildUpPlayPassing_diff,
+    chanceCreationPassing_diff,
+    chanceCreationCrossing_diff,
+    chanceCreationShooting_diff,
+    defencePressure_diff,
+    defenceAggression_diff,
+    defenceTeamWidth_diff,
+    speed_shooting_int,
+    defence_press_agg_int
+  ) |>
+  drop_na()
+
+test_data <- test_matches |>
+  mutate(
+    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
+    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
+    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
+    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
+    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
+    defencePressure_diff         = home_defencePressure         - away_defencePressure,
+    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
+    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
+    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
+    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
+  ) |>
+  select(
+    home_result,
+    buildUpPlaySpeed_diff,
+    buildUpPlayPassing_diff,
+    chanceCreationPassing_diff,
+    chanceCreationCrossing_diff,
+    chanceCreationShooting_diff,
+    defencePressure_diff,
+    defenceAggression_diff,
+    defenceTeamWidth_diff,
+    speed_shooting_int,
+    defence_press_agg_int
+  )
+
+## Drop predictors that are entirely NA ----
+na_all_cols <- names(train_data)[sapply(train_data, function(x) all(is.na(x)))]
+
+na_all_cols
+
+train_data <- train_data |>
+  select(-all_of(na_all_cols))
+
+test_data <- test_data |>
+  select(-all_of(na_all_cols))
+
+## Also drop any remaining rows with NA in predictors or outcome
+train_data <- train_data |>
+  drop_na()
+
+test_data <- test_data |>
+  drop_na()
+```
+
+```{r}
+## Logistic Regression ----
+
+# Specify multinomial logistic regression
+logistic_spec <- multinom_reg(mode = "classification") |>
+  set_engine("nnet")
+
+# Fit model on training data
+logistic_spec |>
+  fit(home_result ~ ., data = train_data) -> m0.fit
+
+# Training confusion matrix
+cat("=== MULTINOMIAL LOGISTIC RESULTS ===\n")
+
+m0.fit |>
+  augment(new_data = train_data) |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+# Training error rate
+m0.fit |>
+  augment(new_data = train_data) |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+# Test confusion matrix and error rate
+logistic_spec |>
+  fit(home_result ~ ., data = train_data) |>
+  augment(new_data = test_data) -> m0.test_res
+
+m0.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+m0.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+```
+```{r}
+### LDA ----
+
+cat("=== LDA RESULTS ===\n")
+
+# Specify LDA model
+lda_spec <- discrim_linear()
+
+# Fit on training data
+lda_spec |>
+  fit(home_result ~ ., data = train_data) -> lda.fit
+
+# Training confusion matrix
+lda.fit |>
+  augment(new_data = train_data) |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+# Training error rate
+lda.fit |>
+  augment(new_data = train_data) |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+# Test confusion matrix + test error
+lda.fit |>
+  augment(new_data = test_data) -> lda.test_res
+
+lda.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+lda.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+```
+```{r}
+### QDA ----
+
+cat("=== QDA RESULTS ===\n")
+
+qda_spec <- discrim_quad()
+
+# Fit on training data
+qda_spec |>
+  fit(home_result ~ ., data = train_data) -> qda.fit
+
+# Training confusion matrix
+qda.fit |>
+  augment(new_data = train_data) |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+# Training error
+qda.fit |>
+  augment(new_data = train_data) |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+# Test predictions
+qda.fit |>
+  augment(new_data = test_data) -> qda.test_res
+
+qda.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+qda.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+```
+```{r}
+### KNN ----
+
+cat("=== KNN (K=1) RESULTS ===\n")
+
+## K = 1
+knn1_spec <- nearest_neighbor(mode = "classification", neighbors = 1)
+
+knn1_spec |>
+  fit(home_result ~ ., data = train_data) -> knn1.fit
+
+knn1.fit |>
+  augment(new_data = test_data) -> knn1.test_res
+
+knn1.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+knn1.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+## K = 3
+
+cat("=== KNN (K=3) RESULTS ===\n")
+
+knn3_spec <- nearest_neighbor(mode = "classification", neighbors = 3)
+
+knn3_spec |>
+  fit(home_result ~ ., data = train_data) -> knn3.fit
+
+knn3.fit |>
+  augment(new_data = test_data) -> knn3.test_res
+
+knn3.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+knn3.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+
+## K = 5
+
+cat("=== KNN (K=5) RESULTS ===\n")
+
+knn5_spec <- nearest_neighbor(mode = "classification", neighbors = 5)
+
+knn5_spec |>
+  fit(home_result ~ ., data = train_data) -> knn5.fit
+
+knn5.fit |>
+  augment(new_data = test_data) -> knn5.test_res
+
+knn5.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+knn5.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+```
+```{r}
+### Validation Set Approach ----
+
+goals_train <- train_matches |>
+  mutate(
+    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
+    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
+    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
+    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
+    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
+    defencePressure_diff         = home_defencePressure         - away_defencePressure,
+    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
+    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
+    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
+    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
+  ) |>
+  select(
+    home_team_goal,
+    buildUpPlaySpeed_diff,
+    buildUpPlayPassing_diff,
+    chanceCreationPassing_diff,
+    chanceCreationCrossing_diff,
+    chanceCreationShooting_diff,
+    defencePressure_diff,
+    defenceAggression_diff,
+    defenceTeamWidth_diff,
+    speed_shooting_int,
+    defence_press_agg_int
+  )
+
+goals_test  <- test_matches |>
+  mutate(
+    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
+    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
+    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
+    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
+    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
+    defencePressure_diff         = home_defencePressure         - away_defencePressure,
+    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
+    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
+    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
+    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
+  ) |>
+  select(
+    home_team_goal,
+    buildUpPlaySpeed_diff,
+    buildUpPlayPassing_diff,
+    chanceCreationPassing_diff,
+    chanceCreationCrossing_diff,
+    chanceCreationShooting_diff,
+    defencePressure_diff,
+    defenceAggression_diff,
+    defenceTeamWidth_diff,
+    speed_shooting_int,
+    defence_press_agg_int
+  )
+
+## Drop predictors that are entirely NA ----
+na_all_cols2 <- names(goals_train)[sapply(goals_train, function(x) all(is.na(x)))]
+
+goals_train <- goals_train |>
+  select(-all_of(na_all_cols2))
+
+goals_test <- goals_test |>
+  select(-all_of(na_all_cols2))
+
+## Also drop any remaining rows with NA in predictors or outcome
+goals_train <- goals_train |>
+  drop_na()
+
+goals_test <- goals_test |>
+  drop_na()
+
+## Prepare linear regression spec
+
+linear_spec <- linear_reg()
+
+## Base recipe: predict home_team_goal using the best predictors
+linear_rec <- recipe(
+  home_team_goal ~ ., data = goals_train)
+
+
+## 4. Fit the linear model
+linear_model <- workflow() |>
+  add_model(linear_spec) |>
+  add_recipe(linear_rec) |>
+  fit(data = goals_train)
+
+## Compute test MSE for linear model
+
+linear_model |>
+  augment(new_data = goals_test) |>
+  mutate(resid2 = (.resid)^2) |>
+  summarise(mse = mean(resid2, na.rm = TRUE)) |>
+  mutate(model = "Linear Regression (Goals)") |>
+  relocate(model)
+
+### Quadratic Model ----
+
+## Add squared terms
+
+quad_rec <- linear_rec |>
+  step_mutate(
+    buildUpPlaySpeed_diff2       = buildUpPlaySpeed_diff^2,
+    buildUpPlayPassing_diff2     = buildUpPlayPassing_diff^2,
+    chanceCreationPassing_diff2  = chanceCreationPassing_diff^2,
+    chanceCreationCrossing_diff2 = chanceCreationCrossing_diff^2,
+    chanceCreationShooting_diff2 = chanceCreationShooting_diff^2,
+    defencePressure_diff2        = defencePressure_diff^2,
+    defenceAggression_diff2      = defenceAggression_diff^2,
+    defenceTeamWidth_diff2       = defenceTeamWidth_diff^2
+  )
+
+workflow() |>
+  add_model(linear_spec) |>
+  add_recipe(quad_rec) |>
+  fit(data = goals_train) |>
+  augment(new_data = goals_test) |>
+  mutate(resid2 = (.resid)^2) |>
+  summarise(mse = mean(resid2, na.rm = TRUE)) |>
+  mutate(model = "Quadratic Regression (Goals)") |>
+  relocate(model)
+
+
+### Cubic Model ----
+
+## Add cubic terms the same way
+
+cubic_rec <- quad_rec |>
+  step_mutate(
+    buildUpPlaySpeed_diff3       = buildUpPlaySpeed_diff^3,
+    buildUpPlayPassing_diff3     = buildUpPlayPassing_diff^3,
+    chanceCreationPassing_diff3  = chanceCreationPassing_diff^3,
+    chanceCreationCrossing_diff3 = chanceCreationCrossing_diff^3,
+    chanceCreationShooting_diff3 = chanceCreationShooting_diff^3,
+    defencePressure_diff3        = defencePressure_diff^3,
+    defenceAggression_diff3      = defenceAggression_diff^3,
+    defenceTeamWidth_diff3       = defenceTeamWidth_diff^3
+  )
+
+workflow() |>
+  add_model(linear_spec) |>
+  add_recipe(cubic_rec) |>
+  fit(data = goals_train) |>
+  augment(new_data = goals_test) |>
+  mutate(resid2 = (.resid)^2) |>
+  summarise(mse = mean(resid2, na.rm = TRUE)) |>
+  mutate(model = "Cubic Regression (Goals)") |>
+  relocate(model)
+
+```
+```{r}
+### KNN ----
+
+goals_knn <- train_matches |>
+  mutate(
+    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
+    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
+    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
+    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
+    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
+    defencePressure_diff         = home_defencePressure         - away_defencePressure,
+    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
+    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
+    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
+    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
+  ) |>
+  select(
+    home_team_goal,
+    buildUpPlaySpeed_diff,
+    buildUpPlayPassing_diff,
+    chanceCreationPassing_diff,
+    chanceCreationCrossing_diff,
+    chanceCreationShooting_diff,
+    defencePressure_diff,
+    defenceAggression_diff,
+    defenceTeamWidth_diff,
+    speed_shooting_int,
+    defence_press_agg_int
+  ) |>
+  drop_na()
+
+na_all_cols3 <- names(goals_knn)[sapply(goals_knn, function(x) all(is.na(x)))]
+
+goals_knn <- goals_knn |>
+  select(-all_of(na_all_cols3))
+
+## Also drop any remaining rows with NA in predictors or outcome
+goals_knn <- goals_knn |>
+  drop_na()
+
+## KNN k-fold CV function ----
+k_fold_cv_err_knn <- function(k_fold = 10, knn, data, formula) {
+  data.kfold <- vfold_cv(data, v = k_fold)
+  
+  knn_spec <- nearest_neighbor(mode = "regression", neighbors = knn)
+  
+  knn_rec <- recipe(formula, data = data) |>
+    step_normalize(all_predictors())
+  
+  workflow() |>
+    add_model(knn_spec) |>
+    add_recipe(knn_rec) |>
+    fit_resamples(data.kfold) |>
+    collect_metrics() |>
+    select(.metric, mean) |>
+    pivot_wider(names_from = .metric, values_from = mean) |>
+    mutate(mse = rmse^2) |>
+    pull(mse)
+}
+
+## Evaluate KNN for K = 1, 5, 10, 20, 100 ----
+res <- data.frame(knn = c(1, 5, 10, 20, 100))
+
+for(i in seq_len(nrow(res))) {
+  res[i, "mse"] <- k_fold_cv_err_knn(
+    k_fold = 10,
+    knn = res[i, "knn"],
+    data = goals_knn,
+    formula = home_team_goal ~ .
+  )
+}
+
+## Inspect results and best K ----
+res
+res[which.min(res$mse), ]
+```
+
+```{r}
+# Build complete data set with engineered predictors and no missing values
+
+goals_ridge <- train_matches |>
+  mutate(
+    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
+    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
+    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
+    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
+    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
+    defencePressure_diff         = home_defencePressure         - away_defencePressure,
+    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
+    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
+    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
+    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
+  ) |>
+  select(
+    home_team_goal,
+    buildUpPlaySpeed_diff,
+    buildUpPlayPassing_diff,
+    chanceCreationPassing_diff,
+    chanceCreationCrossing_diff,
+    chanceCreationShooting_diff,
+    defencePressure_diff,
+    defenceAggression_diff,
+    defenceTeamWidth_diff,
+    speed_shooting_int,
+    defence_press_agg_int
+  ) |>
+  drop_na()
+
+## Ridge Regression ----
+# Lambda grid
+lambda  <- 10^seq(-2, 10, length.out = 100)
+tune_df <- data.frame(lambda = lambda)
+
+# Recipe: standardize predictors
+prep_data <- recipe(home_team_goal ~ ., data = goals_ridge) |>
+  step_normalize(all_predictors())
+
+# Fit ridge for each lambda and store coefficient paths
+ridge_ests <- data.frame()
+for(lam in lambda) {
+  ridge_spec <- linear_reg(mixture = 0, penalty = lam) |>
+    set_mode("regression") |>
+    set_engine("glmnet")
+  
+  workflow() |>
+    add_model(ridge_spec) |>
+    add_recipe(prep_data) |>
+    fit(goals_ridge) |>
+    tidy() |>
+    bind_rows(ridge_ests) -> ridge_ests
+}
+
+# Plot coefficient paths vs lambda
+ridge_ests |>
+  filter(term != "(Intercept)") |>
+  ggplot() +
+  geom_line(aes(penalty, estimate, group = term, colour = term)) +
+  coord_transform(x = "log10")
+
+## 10-fold CV to choose lambda ----
+goals_ridge_10foldcv <- vfold_cv(goals_ridge, v = 10)
+
+ridge_spec <- linear_reg(mixture = 0, penalty = tune("lambda")) |>
+  set_mode("regression") |>
+  set_engine("glmnet")
+
+workflow() |>
+  add_model(ridge_spec) |>
+  add_recipe(prep_data) |>
+  tune_grid(resamples = goals_ridge_10foldcv, grid = tune_df, metrics = metric_set(rmse)) -> ridge_tune
+
+ridge_tune |>
+  collect_metrics() |>
+  select(lambda, .metric, mean) |>
+  pivot_wider(names_from = .metric, values_from = mean) |>
+  ggplot() +
+  geom_line(aes(lambda, rmse^2)) +
+  geom_point(aes(lambda, rmse^2)) +
+  coord_transform(x = "log10")
+
+## Best penalty (lambda) based on CV RMSE
+show_best(ridge_tune, metric = "rmse", n = 1)
+```
