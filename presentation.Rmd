@@ -24,11 +24,138 @@ We used the European soccer database from kaggle (https://www.kaggle.com/dataset
 -11 European countries
 -data from the 2008-2016 seasons
 
+## Models Used 
+
+Predicting Match Outcomes - Classification:
+  -Logistic Regression
+    -Used basic multinomial logistic regression for a baseline model to test for linear trends
+  -K Nearest Neighbors (KNN)
+    -Used KNN to test for Non-Linear trends
+
+Predicting Goals Scored - Regression:
+  -Polynomial Linear Regression
+    -Used basic polynomial linear regression for a baseline model
+      -Linear
+      -Quadratic
+      -Cubic
+  - Ridge Regression
+    - Different Model to compare results with
+
 
 ##Data Preparation
 Data is split into two groups:
 -Train data: 2008-2016 seasons
 -Test data: 2017 season
+
+
+##Task 1 Code and Models
+
+Logistic Regression:
+
+```{r echo = F}
+## Logistic Regression ----
+
+# Specify multinomial logistic regression
+logistic_spec <- multinom_reg(mode = "classification") |>
+  set_engine("nnet")
+
+# Fit model on training data
+logistic_spec |>
+  fit(home_result ~ ., data = train_data) -> m0.fit
+
+# Training confusion matrix
+cat("=== MULTINOMIAL LOGISTIC RESULTS ===\n")
+
+m0.fit |>
+  augment(new_data = train_data) |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+# Training error rate
+m0.fit |>
+  augment(new_data = train_data) |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+# Test confusion matrix and error rate
+logistic_spec |>
+  fit(home_result ~ ., data = train_data) |>
+  augment(new_data = test_data) -> m0.test_res
+
+m0.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+m0.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+```
+
+K Nearest Neighbors:
+
+```{r}
+### KNN ----
+
+cat("=== KNN (K=1) RESULTS ===\n")
+
+## K = 1
+knn1_spec <- nearest_neighbor(mode = "classification", neighbors = 1)
+
+knn1_spec |>
+  fit(home_result ~ ., data = train_data) -> knn1.fit
+
+knn1.fit |>
+  augment(new_data = test_data) -> knn1.test_res
+
+knn1.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+knn1.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+## K = 3
+
+cat("=== KNN (K=3) RESULTS ===\n")
+
+knn3_spec <- nearest_neighbor(mode = "classification", neighbors = 3)
+
+knn3_spec |>
+  fit(home_result ~ ., data = train_data) -> knn3.fit
+
+knn3.fit |>
+  augment(new_data = test_data) -> knn3.test_res
+
+knn3.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+knn3.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+
+
+## K = 5
+
+cat("=== KNN (K=5) RESULTS ===\n")
+
+knn5_spec <- nearest_neighbor(mode = "classification", neighbors = 5)
+
+knn5_spec |>
+  fit(home_result ~ ., data = train_data) -> knn5.fit
+
+knn5.fit |>
+  augment(new_data = test_data) -> knn5.test_res
+
+knn5.test_res |>
+  conf_mat(truth = home_result, estimate = .pred_class)
+
+knn5.test_res |>
+  accuracy(truth = home_result, estimate = .pred_class) |>
+  mutate(error = 1 - .estimate) |>
+  pull(error)
+```
 
 ##Task 1 Models
 
