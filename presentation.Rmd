@@ -1,6 +1,6 @@
 ---
 title: "Predicting Soccer Match Outcomes"
-author: "Theyab Al Khoori, Jasmine Moskowitz"
+author: "Theyab Al Khoori, Jasmine Moskowitz, Max Treusein"
 date: "2025-12-02"
 output: ioslides_presentation
 ---
