@@ -28,10 +28,10 @@ We used the European soccer database from kaggle (https://www.kaggle.com/dataset
 ##Data Preparation
 
 
-##Task 1 Code and Models
+##Task 1 Models
 
 
-##Task 2 Code and Models
+##Task 2 Models
 
 
 ##Results
