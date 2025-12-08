@@ -10,7 +10,12 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ##Overview
-The goal of our project was to predict the match outcome (home win, tie, home loss) of the home team in 2017 soccer season using data from the seasons 2008-2016. 
+The goal of our project was to predict the match outcome (home win, tie, home loss) of the home team in 2017 soccer season using data from the seasons 2008-2016. We split this up into three tasks:
+-Task 1: Data preparation
+-Task 2: Classification
+  -Predicting match outcomes (win at home, tie, loss at home)
+-Task 3: Regression
+  -Predicting the number of goals scored in a match
 
 ##Data
 We used the European soccer database from kaggle (https://www.kaggle.com/datasets/hugomathien/soccer/data). This database includes:
