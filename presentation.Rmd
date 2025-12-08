@@ -332,10 +332,6 @@ knn5.test_res |>
   pull(error)
 ```
 
-##Task 1 Models
-
-
-##Task 2 Models
 
 
 ##Results
