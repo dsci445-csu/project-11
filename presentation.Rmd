@@ -59,7 +59,7 @@ Predicting Goals Scored - Regression:
 
       - Cubic
 
-  - Ridge Regression
+  - Random Forest Regression
 
     - Different Model to compare results with
 
@@ -71,32 +71,118 @@ Data is split into two groups:
 
 - Test data: 2017 season
 
-## Task 1 Code and Models
 
-Logistic Regression:
+## Task 1: Predicting Match Outcomes
 
-K Nearest Neighbors:
+## Logistic Regression
 
-## Task 2 Code and Models
+## K Nearest Neighbors
 
-## Polynomial Linear Regression
+## Task 2: Predicting Goals Scored
 
-## Ridge Regression
+- Used Linear Regression, Quadratic Regression, Cubic Regression, and Random Forest Regression to model how many goals the home team will score in a given Soccer game.
+
+## Linear Regression
 
 <div class="columns">
 <div class="column" width = "40%">
 
-- Error metrics for both testing data set and training data split into training and testing sets
-- Significant terms:
-  - 
+- Error metrics from testing data set.
+- Average Predicted MSE: 1.6359
+  - The model is roughly off by $\sqrt1.6359$ = 1.2790 goals per game on average.
+  - Because soccer scoring is low and discrete, linear regression usually underfits and yields higher MSE.
+  
 
 </div>
 <div class="column" width = "60%">
 
-```{r RR_plot_1, echo=FALSE, fig.align="center", out.width="90%"}
-knitr::include_graphics("Pictures/RR_plot_1.png")
+```{r Linear_Plot, echo=FALSE, fig.align="center", out.width="90%"}
+knitr::include_graphics("Pictures/Linear_Plot.png")
 ```
 </div>
 </div>
 
-## Results
+## Quadratic Regression
+
+<div class="columns">
+<div class="column" width = "40%">
+
+- Error metrics from testing data set.
+- Average Predicted MSE: 1.6357
+  - The model is roughly off by $\sqrt1.6357$ = 1.2789 goals per game on average.
+  - If MSE improves substantially, it means the relationship between team attributes and goals is curved rather than straight.
+
+</div>
+<div class="column" width = "60%">
+
+```{r Quad_Plot, echo=FALSE, fig.align="center", out.width="90%"}
+knitr::include_graphics("Pictures/Quad_Plot.png")
+```
+</div>
+</div>
+
+## Cubic Regression
+
+<div class="columns">
+<div class="column" width = "40%">
+
+- Error metrics from testing data set.
+- Average Predicted MSE: 1.6280
+  - The model is roughly off by $\sqrt1.6280$ = 1.2759 goals per game on average.
+  - If MSE does not decrease meaningfully, then goals do not respond in a highly nonlinear cubic fashion.
+
+</div>
+<div class="column" width = "60%">
+
+```{r Cubic_Plot, echo=FALSE, fig.align="center", out.width="90%"}
+knitr::include_graphics("Pictures/Cubic_Plot.png")
+```
+</div>
+</div>
+
+## Random Forest Regression
+
+<div class="columns">
+<div class="column" width = "40%">
+
+- Error metrics from testing data set.
+- Average Predicted MSE: 1.6859
+  - The model is roughly off by $\sqrt1.6859$ = 1.2984 goals per game on average.
+  - Because soccer scoring is low and discrete, linear regression usually underfits and yields higher MSE.
+
+</div>
+<div class="column" width = "60%">
+
+```{r RF_plot, echo=FALSE, fig.align="center", out.width="90%"}
+knitr::include_graphics("Pictures/RF_plot.png")
+```
+</div>
+</div>
+
+## Random Forest Importance
+
+<div class="columns">
+<div class="column" width = "40%">
+
+- The model relies most on passing quality, defensive pressure, and shooting creation. These features drive forecast accuracy, while defensive structure and interaction terms contribute less.
+
+</div>
+<div class="column" width = "60%">
+
+```{r RF_Imp_Plot, echo=FALSE, fig.align="center", out.width="90%"}
+knitr::include_graphics("Pictures/RF_Imp_Plot.png")
+```
+</div>
+</div>
+
+## Results and Reflection
+
+- Best Classification Model: K Nearest Neighbors
+  - Average of % accuracy
+
+- Best Regression Model: Undetermined - all MSE around 1.6
+  - We chose Random Forest Regression because the fitted regression line seems to be closest to actual trend of data, but its open to interpretation.
+  
+- Reflection (Things to Improve on):
+  - Could have included more match-specific information like recent team form, last-5 goal totals, rolling averages of chances/shots, etc. could have reduced the model’s tendency to predict values near the mean.
+  - Could have added player-level strength instead of only team ratings such as average overall rating of expected starters, attacking/defensive overall, or key-player availability. This could raise predictive power because goals depend heavily on who is actually on the field, not just team-level attributes.
