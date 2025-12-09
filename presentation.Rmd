@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-The goal of our project was to predict the match outcome (home win, tie, home loss) of the home team in 2017 soccer season using data from the seasons 2008-2016. We split this up into three tasks:
+The goal of our project was to predict the match outcome (home win, tie, home loss) of the home team in 2015 soccer season using data from the seasons 20010-2014. We split this up into three tasks:
 
 - Task 1: Data preparation
 - Task 2: Classification
