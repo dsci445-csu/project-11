@@ -131,10 +131,6 @@ head(train_matches)
 head(test_matches)
 
 ```
-```{r}
-#write.csv(train_matches, file = "train_matches.csv", row.names = FALSE)
-#write.csv(test_matches, file = "test_matches.csv", row.names = FALSE)
-```
 
 ```{r}
 # Prepare training and test data with predictors only
@@ -212,7 +208,7 @@ test_data <- test_data |>
   drop_na()
 ```
 
-```{r}
+```{r echo = F}
 ## Logistic Regression ----
 
 # Specify multinomial logistic regression
@@ -250,77 +246,7 @@ m0.test_res |>
   mutate(error = 1 - .estimate) |>
   pull(error)
 ```
-```{r}
-### LDA ----
 
-cat("=== LDA RESULTS ===\n")
-
-# Specify LDA model
-lda_spec <- discrim_linear()
-
-# Fit on training data
-lda_spec |>
-  fit(home_result ~ ., data = train_data) -> lda.fit
-
-# Training confusion matrix
-lda.fit |>
-  augment(new_data = train_data) |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-# Training error rate
-lda.fit |>
-  augment(new_data = train_data) |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-
-# Test confusion matrix + test error
-lda.fit |>
-  augment(new_data = test_data) -> lda.test_res
-
-lda.test_res |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-lda.test_res |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-```
-```{r}
-### QDA ----
-
-cat("=== QDA RESULTS ===\n")
-
-qda_spec <- discrim_quad()
-
-# Fit on training data
-qda_spec |>
-  fit(home_result ~ ., data = train_data) -> qda.fit
-
-# Training confusion matrix
-qda.fit |>
-  augment(new_data = train_data) |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-# Training error
-qda.fit |>
-  augment(new_data = train_data) |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-
-# Test predictions
-qda.fit |>
-  augment(new_data = test_data) -> qda.test_res
-
-qda.test_res |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-qda.test_res |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-```
 ```{r}
 ### KNN ----
 
@@ -384,6 +310,7 @@ knn5.test_res |>
   mutate(error = 1 - .estimate) |>
   pull(error)
 ```
+
 ```{r}
 ### Validation Set Approach ----
 
@@ -535,82 +462,7 @@ workflow() |>
   relocate(model)
 
 ```
-```{r}
-### KNN ----
 
-goals_knn <- train_matches |>
-  mutate(
-    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
-    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
-    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
-    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
-    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
-    defencePressure_diff         = home_defencePressure         - away_defencePressure,
-    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
-    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
-    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
-    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
-  ) |>
-  select(
-    home_team_goal,
-    buildUpPlaySpeed_diff,
-    buildUpPlayPassing_diff,
-    chanceCreationPassing_diff,
-    chanceCreationCrossing_diff,
-    chanceCreationShooting_diff,
-    defencePressure_diff,
-    defenceAggression_diff,
-    defenceTeamWidth_diff,
-    speed_shooting_int,
-    defence_press_agg_int
-  ) |>
-  drop_na()
-
-na_all_cols3 <- names(goals_knn)[sapply(goals_knn, function(x) all(is.na(x)))]
-
-goals_knn <- goals_knn |>
-  select(-all_of(na_all_cols3))
-
-## Also drop any remaining rows with NA in predictors or outcome
-goals_knn <- goals_knn |>
-  drop_na()
-
-## KNN k-fold CV function ----
-k_fold_cv_err_knn <- function(k_fold = 10, knn, data, formula) {
-  data.kfold <- vfold_cv(data, v = k_fold)
-  
-  knn_spec <- nearest_neighbor(mode = "regression", neighbors = knn)
-  
-  knn_rec <- recipe(formula, data = data) |>
-    step_normalize(all_predictors())
-  
-  workflow() |>
-    add_model(knn_spec) |>
-    add_recipe(knn_rec) |>
-    fit_resamples(data.kfold) |>
-    collect_metrics() |>
-    select(.metric, mean) |>
-    pivot_wider(names_from = .metric, values_from = mean) |>
-    mutate(mse = rmse^2) |>
-    pull(mse)
-}
-
-## Evaluate KNN for K = 1, 5, 10, 20, 100 ----
-res <- data.frame(knn = c(1, 5, 10, 20, 100))
-
-for(i in seq_len(nrow(res))) {
-  res[i, "mse"] <- k_fold_cv_err_knn(
-    k_fold = 10,
-    knn = res[i, "knn"],
-    data = goals_knn,
-    formula = home_team_goal ~ .
-  )
-}
-
-## Inspect results and best K ----
-res
-res[which.min(res$mse), ]
-```
 
 ```{r}
 # Build complete data set with engineered predictors and no missing values
