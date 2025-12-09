@@ -71,291 +71,32 @@ Data is split into two groups:
 
 - Test data: 2017 season
 
-```{r include = F}
-library(tidymodels)
-library(discrim)
-library(ISLR)
-library(ggplot2)
-library(dplyr)
-library(readr)
-library(lubridate)
-
-set.seed(445)
-
-## Load raw data ----
-match <- read.csv("Match.csv")
-team <- read.csv("Team.csv")
-team_attr <- read.csv("Team_Attributes.csv")
-
-## Team-season attributes ----
-team_attr |>
-  mutate(
-    date = as.Date(date),
-    season = year(date)
-  ) |>
-  filter(season >= 2010, season <= 2015) |>
-  select(-id, -date) |>
-  group_by(team_api_id, season) |>
-  summarise(
-    across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
-    .groups = "drop"
-  ) -> team_season_attr
-
-team |>
-  select(team_api_id, team_long_name, team_short_name) |>
-  right_join(team_season_attr, by = "team_api_id") -> team_season_attr
-
-num_cols <- sapply(team_season_attr, is.numeric)
-
-team_season_attr[num_cols] <- lapply(team_season_attr[num_cols], function(x) {
-  if (all(is.na(x))) return(x)
-  x[is.na(x)] <- mean(x, na.rm = TRUE)
-  x
-})
-
-## Build match-level outcome and season ----
-match |>
-  mutate(
-    date = as.Date(date),
-    season = year(date),
-    home_result = case_when(
-      home_team_goal > away_team_goal ~ "Win",
-      home_team_goal == away_team_goal ~ "Draw",
-      home_team_goal < away_team_goal ~ "Loss"
-    ),
-    home_result = factor(home_result, levels = c("Win", "Draw", "Loss"))
-  ) |>
-  filter(season >= 2010, season <= 2015) |>
-  select(
-    match_api_id,
-    season,
-    date,
-    home_team_api_id,
-    away_team_api_id,
-    home_team_goal,
-    away_team_goal,
-    home_result
-  ) -> matches_base
-
-## Home-team attributes ----
-team_season_attr |>
-  rename(
-    home_team_api_id = team_api_id
-  ) |>
-  rename_with(
-    ~ paste0("home_", .x),
-    .cols = -c(home_team_api_id, season)
-  ) -> home_attr
-
-## Away-team attributes ----
-team_season_attr |>
-  rename(
-    away_team_api_id = team_api_id
-  ) |>
-  rename_with(
-    ~ paste0("away_", .x),
-    .cols = -c(away_team_api_id, season)
-  ) -> away_attr
-
-## Join attributes onto matches ----
-matches_base |>
-  left_join(home_attr, by = c("season", "home_team_api_id")) |>
-  left_join(away_attr, by = c("season", "away_team_api_id")) -> soccer_matches
-
-## Final train / test splits ----
-train_matches <- soccer_matches |> filter(season <= 2014)
-test_matches  <- soccer_matches |> filter(season == 2015)
-
-head(train_matches)
-head(test_matches)
-
-```
-
-```{r include = F}
-# Prepare training and test data with predictors only
-train_data <- train_matches |>
-  mutate(
-    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
-    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
-    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
-    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
-    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
-    defencePressure_diff         = home_defencePressure         - away_defencePressure,
-    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
-    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
-    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
-    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
-  ) |>
-  select(
-    home_result,
-    buildUpPlaySpeed_diff,
-    buildUpPlayPassing_diff,
-    chanceCreationPassing_diff,
-    chanceCreationCrossing_diff,
-    chanceCreationShooting_diff,
-    defencePressure_diff,
-    defenceAggression_diff,
-    defenceTeamWidth_diff,
-    speed_shooting_int,
-    defence_press_agg_int
-  ) |>
-  drop_na()
-
-test_data <- test_matches |>
-  mutate(
-    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
-    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
-    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
-    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
-    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
-    defencePressure_diff         = home_defencePressure         - away_defencePressure,
-    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
-    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
-    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
-    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
-  ) |>
-  select(
-    home_result,
-    buildUpPlaySpeed_diff,
-    buildUpPlayPassing_diff,
-    chanceCreationPassing_diff,
-    chanceCreationCrossing_diff,
-    chanceCreationShooting_diff,
-    defencePressure_diff,
-    defenceAggression_diff,
-    defenceTeamWidth_diff,
-    speed_shooting_int,
-    defence_press_agg_int
-  )
-
-## Drop predictors that are entirely NA ----
-na_all_cols <- names(train_data)[sapply(train_data, function(x) all(is.na(x)))]
-
-na_all_cols
-
-train_data <- train_data |>
-  select(-all_of(na_all_cols))
-
-test_data <- test_data |>
-  select(-all_of(na_all_cols))
-
-## Also drop any remaining rows with NA in predictors or outcome
-train_data <- train_data |>
-  drop_na()
-
-test_data <- test_data |>
-  drop_na()
-```
-
 ## Task 1 Code and Models
 
 Logistic Regression:
 
-```{r echo = F}
-## Logistic Regression ----
-
-# Specify multinomial logistic regression
-logistic_spec <- multinom_reg(mode = "classification") |>
-  set_engine("nnet")
-
-# Fit model on training data
-logistic_spec |>
-  fit(home_result ~ ., data = train_data) -> m0.fit
-
-# Training confusion matrix
-cat("=== MULTINOMIAL LOGISTIC RESULTS ===\n")
-
-m0.fit |>
-  augment(new_data = train_data) |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-# Training error rate
-m0.fit |>
-  augment(new_data = train_data) |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-
-# Test confusion matrix and error rate
-logistic_spec |>
-  fit(home_result ~ ., data = train_data) |>
-  augment(new_data = test_data) -> m0.test_res
-
-m0.test_res |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-m0.test_res |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-```
-
 K Nearest Neighbors:
 
-```{r}
-### KNN ----
+## Task 2 Code and Models
 
-cat("=== KNN (K=1) RESULTS ===\n")
+## Polynomial Linear Regression
 
-## K = 1
-knn1_spec <- nearest_neighbor(mode = "classification", neighbors = 1)
+## Ridge Regression
 
-knn1_spec |>
-  fit(home_result ~ ., data = train_data) -> knn1.fit
+<div class="columns">
+<div class="column" width = "40%">
 
-knn1.fit |>
-  augment(new_data = test_data) -> knn1.test_res
+- Error metrics for both testing data set and training data split into training and testing sets
+- Significant terms:
+  - 
 
-knn1.test_res |>
-  conf_mat(truth = home_result, estimate = .pred_class)
+</div>
+<div class="column" width = "60%">
 
-knn1.test_res |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-
-## K = 3
-
-cat("=== KNN (K=3) RESULTS ===\n")
-
-knn3_spec <- nearest_neighbor(mode = "classification", neighbors = 3)
-
-knn3_spec |>
-  fit(home_result ~ ., data = train_data) -> knn3.fit
-
-knn3.fit |>
-  augment(new_data = test_data) -> knn3.test_res
-
-knn3.test_res |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-knn3.test_res |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
-
-
-## K = 5
-
-cat("=== KNN (K=5) RESULTS ===\n")
-
-knn5_spec <- nearest_neighbor(mode = "classification", neighbors = 5)
-
-knn5_spec |>
-  fit(home_result ~ ., data = train_data) -> knn5.fit
-
-knn5.fit |>
-  augment(new_data = test_data) -> knn5.test_res
-
-knn5.test_res |>
-  conf_mat(truth = home_result, estimate = .pred_class)
-
-knn5.test_res |>
-  accuracy(truth = home_result, estimate = .pred_class) |>
-  mutate(error = 1 - .estimate) |>
-  pull(error)
+```{r RR_plot_1, echo=FALSE, fig.align="center", out.width="90%"}
+knitr::include_graphics("Pictures/RR_plot_1.png")
 ```
-
-
+</div>
+</div>
 
 ## Results
