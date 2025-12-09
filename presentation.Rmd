@@ -39,37 +39,30 @@ We used the European soccer database from kaggle (https://www.kaggle.com/dataset
 ## Models Used 
 
 Predicting Match Outcomes - Classification:
-
   - Logistic Regression
-
     - Used basic multinomial logistic regression for a baseline model to test for linear trends
-
   - K Nearest Neighbors (KNN)
-
     - Used KNN to test for Non-Linear trends
 
 Predicting Goals Scored - Regression:
   - Polynomial Linear Regression
-
     - Used basic polynomial linear regression for a baseline model
-
       - Linear
-
       - Quadratic
-
       - Cubic
-
   - Random Forest Regression
-
     - Different Model to compare results with
 
 
 ## Data Preparation
 Data is split into two groups:
-
-- Train data: 2008-2016 seasons
-
-- Test data: 2017 season
+- Train data: 2010-2014 seasons
+- Test data: 2015 season
+- Gathered data from 3 different datasets:
+  - Match Data
+  - Team Data
+  - Team Attributes Data
+- Indexed by Team API ID
 
 
 ## Task 1: Predicting Match Outcomes
