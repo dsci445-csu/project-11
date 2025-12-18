@@ -2,15 +2,15 @@
 title: "Predicting Soccer Match Outcomes"
 author: "Theyab Alkhoori, Jasmine Moskowitz, Max Treusein"
 date: "2025-12-02"
-output: html_document
+output: pdf_document
 ---
 
 # Introduction
-Around the world, soccer is a popular sport. Millions of people enjoy using each team's data to predict match outcomes. Our project aims to predict match results of the 2017 season. We will predict the 2017 season using the statistics from the 2008 to 2016 seasons, then compare our predictions with the actual outcomes. In the end we hope to know if the home team wins, ties, or loses and well as the number of goals scored during the game. Once complete we can then compare our results with the actual results of the game.
+Around the world, soccer is a popular sport. Millions of people enjoy using each team's data to predict match outcomes. Our project aims to predict match results of the 2015 season. We will predict the 2015 season using the statistics from the 2010 to 2014 seasons, then compare our predictions with the actual outcomes. In the end we hope to know if the home team wins, ties, or loses and well as the number of goals scored during the game. Once complete we can then compare our results with the actual results of the game.
 
 # References 
 We plan to execute our desired tasks by using the **European Soccer Database** from Kaggle (https://www.kaggle.com/datasets/hugomathien/soccer/data). This source includes information from more than 25,000 games, more than 10,000 players, and eleven European nations. The data contains match statistics, results, and other information all contained in csv files. 
-We will split the data into two parts: train and test. The training data will contain data from the season 2008 to 2016. The test data will contain data from the 2017 season. 
+We will split the data into two parts: train and test. The training data will contain data from the season 2010 to 2014. The test data will contain data from the 2015 season. 
 
 # Methods
 ## Task 1: Data Preparation
@@ -23,12 +23,10 @@ Our second task is using classification methods to predict match outcomes (home 
 Our third task is to predict the number of goals scored in a match. 
 
 # Results
-1. If the home team wins, ties, or loses.
-2. The number of goals scored during a game.
 
+Task 1: If the home team wins, ties, or loses.
 
-=======
-
+Task 2: The number of goals scored during a game.
 
 We used the **European Soccer Database** from Kaggle, which includes 11 leagues, 10,000 players, and more than 25,000.
 
@@ -40,6 +38,8 @@ library(ggplot2)
 library(dplyr)
 library(readr)
 library(lubridate)
+library(randomForest)
+library(vip)
 
 set.seed(445)
 
@@ -208,7 +208,7 @@ test_data <- test_data |>
   drop_na()
 ```
 
-```{r echo = F}
+```{r}
 ## Logistic Regression ----
 
 # Specify multinomial logistic regression
@@ -408,6 +408,21 @@ linear_model |>
   mutate(model = "Linear Regression (Goals)") |>
   relocate(model)
 
+## Actual vs Predicted: Linear Regression ----
+linear_aug <- linear_model |>
+  augment(new_data = goals_test)
+
+linear_aug |>
+  ggplot(aes(x = home_team_goal, y = .pred)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "red") +
+  labs(
+    title = "Linear Regression: Actual vs Predicted Home Goals (2015 Season)",
+    x = "Actual Home Goals",
+    y = "Predicted Home Goals"
+  )
+
 ### Quadratic Model ----
 
 ## Add squared terms
@@ -433,6 +448,26 @@ workflow() |>
   summarise(mse = mean(resid2, na.rm = TRUE)) |>
   mutate(model = "Quadratic Regression (Goals)") |>
   relocate(model)
+
+## Fit quadratic model for plotting ----
+quad_model <- workflow() |>
+  add_model(linear_spec) |>
+  add_recipe(quad_rec) |>
+  fit(data = goals_train)
+
+quad_aug <- quad_model |>
+  augment(new_data = goals_test)
+
+quad_aug |>
+  ggplot(aes(x = home_team_goal, y = .pred)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "red") +
+  labs(
+    title = "Quadratic Regression: Actual vs Predicted Home Goals (2015 Season)",
+    x = "Actual Home Goals",
+    y = "Predicted Home Goals"
+  )
 
 
 ### Cubic Model ----
@@ -461,92 +496,84 @@ workflow() |>
   mutate(model = "Cubic Regression (Goals)") |>
   relocate(model)
 
-```
+## Fit cubic model for plotting ----
+cubic_model <- workflow() |>
+  add_model(linear_spec) |>
+  add_recipe(cubic_rec) |>
+  fit(data = goals_train)
 
+cubic_aug <- cubic_model |>
+  augment(new_data = goals_test)
+
+cubic_aug |>
+  ggplot(aes(x = home_team_goal, y = .pred)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "red") +
+  labs(
+    title = "Cubic Regression: Actual vs Predicted Home Goals (2015 Season)",
+    x = "Actual Home Goals",
+    y = "Predicted Home Goals"
+  )
+
+```
 
 ```{r}
-# Build complete data set with engineered predictors and no missing values
+## Random Forest Regression ----
 
-goals_ridge <- train_matches |>
-  mutate(
-    buildUpPlaySpeed_diff        = home_buildUpPlaySpeed        - away_buildUpPlaySpeed,
-    buildUpPlayPassing_diff      = home_buildUpPlayPassing      - away_buildUpPlayPassing,
-    chanceCreationPassing_diff   = home_chanceCreationPassing   - away_chanceCreationPassing,
-    chanceCreationCrossing_diff  = home_chanceCreationCrossing  - away_chanceCreationCrossing,
-    chanceCreationShooting_diff  = home_chanceCreationShooting  - away_chanceCreationShooting,
-    defencePressure_diff         = home_defencePressure         - away_defencePressure,
-    defenceAggression_diff       = home_defenceAggression       - away_defenceAggression,
-    defenceTeamWidth_diff        = home_defenceTeamWidth        - away_defenceTeamWidth,
-    speed_shooting_int           = buildUpPlaySpeed_diff * chanceCreationShooting_diff,
-    defence_press_agg_int        = defencePressure_diff * defenceAggression_diff
-  ) |>
-  select(
-    home_team_goal,
-    buildUpPlaySpeed_diff,
-    buildUpPlayPassing_diff,
-    chanceCreationPassing_diff,
-    chanceCreationCrossing_diff,
-    chanceCreationShooting_diff,
-    defencePressure_diff,
-    defenceAggression_diff,
-    defenceTeamWidth_diff,
-    speed_shooting_int,
-    defence_press_agg_int
-  ) |>
-  drop_na()
+# Specification: random forest for regression on home goals
+rf_spec <- rand_forest(mtry = sqrt(.cols())) |>
+  set_engine("randomForest", importance = TRUE) |>
+  set_mode("regression")
 
-## Ridge Regression ----
-# Lambda grid
-lambda  <- 10^seq(-2, 10, length.out = 100)
-tune_df <- data.frame(lambda = lambda)
+# Use the same predictors as the other regression models
+# (goals_train has home_team_goal and all diff variables)
+rf_wf <- workflow() |>
+  add_model(rf_spec) |>
+  add_formula(home_team_goal ~ .)
 
-# Recipe: standardize predictors
-prep_data <- recipe(home_team_goal ~ ., data = goals_ridge) |>
-  step_normalize(all_predictors())
+# Fit on training data
+rf_fit <- rf_wf |>
+  fit(data = goals_train)
 
-# Fit ridge for each lambda and store coefficient paths
-ridge_ests <- data.frame()
-for(lam in lambda) {
-  ridge_spec <- linear_reg(mixture = 0, penalty = lam) |>
-    set_mode("regression") |>
-    set_engine("glmnet")
-  
-  workflow() |>
-    add_model(ridge_spec) |>
-    add_recipe(prep_data) |>
-    fit(goals_ridge) |>
-    tidy() |>
-    bind_rows(ridge_ests) -> ridge_ests
-}
+# Variable importance plot
+vip(rf_fit) +
+  labs(title = "Random Forest Variable Importance (%IncMSE)")
 
-# Plot coefficient paths vs lambda
-ridge_ests |>
-  filter(term != "(Intercept)") |>
-  ggplot() +
-  geom_line(aes(penalty, estimate, group = term, colour = term)) +
-  coord_transform(x = "log10")
+# Predictions on test data
+rf_fit |>
+  predict(new_data = goals_test) |>
+  bind_cols(goals_test) -> rf_test_res
 
-## 10-fold CV to choose lambda ----
-goals_ridge_10foldcv <- vfold_cv(goals_ridge, v = 10)
+# Test MSE for random forest regression
+rf_test_res |>
+  mutate(resid2 = (home_team_goal - .pred)^2) |>
+  summarise(mse = mean(resid2))
 
-ridge_spec <- linear_reg(mixture = 0, penalty = tune("lambda")) |>
-  set_mode("regression") |>
-  set_engine("glmnet")
+# Actual vs Predicted plot for random forest regression
+rf_test_res |>
+  ggplot(aes(x = home_team_goal, y = .pred)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "red") +
+  labs(
+    title = "Random Forest: Actual vs Predicted Home Goals (2015 Season)",
+    x = "Actual Home Goals",
+    y = "Predicted Home Goals"
+  )
 
-workflow() |>
-  add_model(ridge_spec) |>
-  add_recipe(prep_data) |>
-  tune_grid(resamples = goals_ridge_10foldcv, grid = tune_df, metrics = metric_set(rmse)) -> ridge_tune
-
-ridge_tune |>
-  collect_metrics() |>
-  select(lambda, .metric, mean) |>
-  pivot_wider(names_from = .metric, values_from = mean) |>
-  ggplot() +
-  geom_line(aes(lambda, rmse^2)) +
-  geom_point(aes(lambda, rmse^2)) +
-  coord_transform(x = "log10")
-
-## Best penalty (lambda) based on CV RMSE
-show_best(ridge_tune, metric = "rmse", n = 1)
 ```
+
+Best Classification Model: K Nearest Neighbors - K = 3
+
+For classification, out of the munti-nomial logistic regression model, and the K nearest neighbor model, the better of the two models was KNN. KNN performed the best with K = 3, which had an average accuracy of just over 63% on the test data. This is marginally better than the logistic model, which performed at average accuracy of about 54% on the test data. We also noticed that the logistic model never predicted a draw. This could be because the prediction uses argmax(p_win, p_draw, p_loss). If p_draw is never the largest, draw is never predicted, therefore with this model, the draw variable colapses. KNN adjusts for the non-linearity of the data, raising the test accuracy almost 10%.
+
+Best Regression Model: Undetermined - all MSE around 1.6
+
+The regression models proved to be a lot harder to get good accuracy. Each model, including the linear, quadratic, and cubic regression models, as well as the random forest regression model performed with an MSE around 1.6. This means the model predicted between plus or minus 1.6 of the true amount of goals scored, which is not very accurate considering most of the amount of goals scored by the home team in a game is between 0 and 3. Specifically, for the quadratic and cubic regression models, we could have squared and cubed different predictors to see if any of the terms alone follow a quadratic or cubic pattern, instead of squaring and cubing every term we used. For the random forest model, we can see the predictors with the most influence are defencePressure_diff and buildUpPlayPassing_diff. This means that the difference in defence pressure and difference in build up passing plays between the home and away team have the most influence in determining how many goals are scored. For the best performing model, we chose Random Forest Regression because the fitted regression line seems to be closest to actual trend of data, but its open to interpretation.
+  
+# Reflection (Things to Improve on):
+
+To improve these models, we could have included more match-specific information like recent team form, last-5 goal totals, rolling averages of chances/shots, etc. could have reduced the model’s tendency to predict values near the mean.
+
+Finally, we could have added player-level strength instead of only team ratings such as average overall rating of expected starters, attacking/defensive overall, or key-player availability. This could raise predictive power because goals depend heavily on who is actually on the field, not just team-level attributes.
